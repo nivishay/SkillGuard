@@ -1,0 +1,125 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SkillGuard Journey · Roadmap</title>
+<style>
+:root{--bg:#f7f8fa;--fg:#1f2430;--mut:#6b7280;--card:#ffffff;--line:#d6dae1;--rail:#c3c9d4}
+@media(prefers-color-scheme:dark){:root{--bg:#0f1117;--fg:#e6e8ee;--mut:#9aa3b2;--card:#171a22;--line:#2a2f3a;--rail:#333a47}}
+*{box-sizing:border-box}
+body{margin:0;font:15px/1.55 -apple-system,Segoe UI,Roboto,sans-serif;background:var(--bg);color:var(--fg);padding:28px 18px 60px}
+h1,h2,h3{margin:0}
+.muted{color:var(--mut);font-weight:400;font-size:.85em}
+.hd{max-width:900px;margin:0 auto 22px}
+.hd h1{font-size:26px}
+.sub{color:var(--mut);margin:4px 0 16px}
+.stats{display:flex;gap:10px;flex-wrap:wrap}
+.stat{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:10px 16px;min-width:96px}
+.stat-v{font-size:22px;font-weight:700}
+.stat-l{color:var(--mut);font-size:12px;text-transform:uppercase;letter-spacing:.04em}
+.panel{max-width:900px;margin:0 auto 18px;display:grid;grid-template-columns:1fr 1fr;gap:14px}
+@media(max-width:640px){.panel{grid-template-columns:1fr}}
+.col{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px 16px}
+.col h2{font-size:14px;margin-bottom:10px}
+.spark{width:100%;height:90px;display:block}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chip{background:var(--bg);border:1px solid var(--line);border-radius:20px;padding:3px 10px;font-size:13px;display:inline-flex;gap:6px;align-items:center}
+.chip b{color:var(--mut);font-size:11px}
+.chip.sm{font-size:11px;padding:2px 8px}
+.legend{max-width:900px;margin:0 auto 10px;display:flex;gap:14px;flex-wrap:wrap;font-size:12px;color:var(--mut)}
+.lg{display:inline-flex;align-items:center;gap:5px}
+.lg i{width:10px;height:10px;border-radius:50%;display:inline-block}
+.tree{max-width:900px;margin:0 auto;position:relative}
+.node{display:grid;grid-template-columns:34px 1fr;gap:6px}
+.rail{position:relative;display:flex;justify-content:center}
+.rail:before{content:"";position:absolute;top:0;bottom:-0;width:2px;background:var(--rail)}
+.node:last-child .rail:before{bottom:auto;height:26px}
+.dot{width:14px;height:14px;border-radius:50%;margin-top:20px;z-index:1}
+.card{background:var(--card);border:1px solid var(--line);border-left:4px solid var(--tc);border-radius:12px;padding:12px 16px;margin:8px 0 18px}
+.card-hd{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:4px}
+.badge{color:#fff;font-size:11px;font-weight:600;padding:2px 8px;border-radius:6px}
+.date{color:var(--mut);font-size:12px}
+.diff{color:#10b981;letter-spacing:1px;font-size:11px;margin-left:auto}
+.card h3{font-size:16px;margin:2px 0 8px}
+.summary{margin:6px 0}
+details{margin:8px 0;border-top:1px solid var(--line);padding-top:8px}
+summary{cursor:pointer;font-weight:600;font-size:13px}
+ul{margin:8px 0 4px;padding-left:18px}
+li{margin:4px 0}
+.to .pick{color:#10b981;font-weight:600}
+.to .drop{color:var(--mut);text-decoration:line-through}
+.why{color:var(--mut);font-size:13px;margin:2px 0 6px}
+.fix{color:#10b981;font-size:13px}
+.who{font-size:10px;font-weight:700;padding:1px 6px;border-radius:5px;text-transform:uppercase;letter-spacing:.03em;vertical-align:middle}
+.who.you{background:#10b98122;color:#10b981}
+.who.both{background:#3b82f622;color:#3b82f6}
+.who.auto{background:#64748b22;color:var(--mut)}
+.muted-bug{opacity:.55}
+.muted-bug b{font-weight:500}
+.node-skills{margin:8px 0;display:flex;flex-wrap:wrap;gap:5px}
+.impact{margin:10px 0 2px;font-weight:600}
+.ft{max-width:900px;margin:30px auto 0;color:var(--mut);font-size:12px;text-align:center}
+</style></head>
+<body>
+<header class="hd">
+  <h1>SkillGuard Journey</h1>
+  <p class="sub">Engineering journey · 2 milestones · generated 2026-07-04 14:41</p>
+  <div class="stats"><div class="stat"><div class="stat-v">2</div><div class="stat-l">milestones</div></div><div class="stat"><div class="stat-v">0</div><div class="stat-l">bugs fixed</div></div><div class="stat"><div class="stat-v">6</div><div class="stat-l">trade-offs</div></div><div class="stat"><div class="stat-v">6</div><div class="stat-l">learnings</div></div><div class="stat"><div class="stat-v">9</div><div class="stat-l">skills used</div></div></div>
+</header>
+
+<section class="panel">
+  <div class="col">
+    <h2>Learning curve <span class="muted">(difficulty 1–5 over time)</span></h2>
+    <svg viewBox="0 0 320 90" class="spark" preserveAspectRatio="none">
+    <polygon points="12,78 12.0,45.0 308.0,28.5 308,78" fill="#10b98122"/>
+    <polyline points="12.0,45.0 308.0,28.5" fill="none" stroke="#10b981" stroke-width="2"/>
+    <circle cx="12.0" cy="45.0" r="3.5" fill="#10b981"/><circle cx="308.0" cy="28.5" r="3.5" fill="#10b981"/>
+  </svg>
+  </div>
+  <div class="col">
+    <h2>Skills exercised</h2>
+    <div class="chips"><span class="chip">write-a-skill<b>1</b></span><span class="chip">flow-architect<b>1</b></span><span class="chip">claude-in-chrome<b>1</b></span><span class="chip">grill-with-docs<b>1</b></span><span class="chip">grilling<b>1</b></span><span class="chip">domain-modeling<b>1</b></span><span class="chip">to-prd<b>1</b></span><span class="chip">git<b>1</b></span><span class="chip">gh-cli<b>1</b></span></div>
+  </div>
+</section>
+
+<div class="legend"><span class="lg"><i style="background:#3b82f6"></i>Feature</span><span class="lg"><i style="background:#ef4444"></i>Bug fix</span><span class="lg"><i style="background:#a855f7"></i>Design</span><span class="lg"><i style="background:#f59e0b"></i>Refactor</span><span class="lg"><i style="background:#10b981"></i>Learning</span><span class="lg"><i style="background:#64748b"></i>Note</span></div>
+
+<main class="tree"><div class="node">
+    <div class="rail"><span class="dot" style="background:#a855f7;box-shadow:0 0 0 4px #a855f733"></span></div>
+    <div class="card" style="--tc:#a855f7">
+      <div class="card-hd">
+        <span class="badge" style="background:#a855f7">Design</span>
+        <span class="date">2026-07-04</span>
+        <span class="diff" title="difficulty 3/5">●●●○○</span>
+      </div>
+      <h3>Designed the engineering-reflection skill</h3>
+      <p class="summary">Iterated a text-only reflection skill into a cumulative visual roadmap (git-tree HTML) with an inclusion gate so only real learning gets recorded.</p>
+<details open><summary>Trade-offs (1)</summary><ul class="to"><li><span class="pick">✔ Inclusion gate: record only genuine learning or debated trade-offs</span> <span class="drop">✘ Log every session as a node</span>
+        <div class="why">You raised this directly — the roadmap should map the learning curve, not activity; mechanical work (downloads, renames) shouldn't clutter it.</div></li></ul></details>
+<details><summary>Bugs &amp; fixes (0 of 1, 1 self-fixed)</summary><ul class="bug"><li class="muted-bug"><b>Script crashed: Cannot access 'typeOf' before initialization</b> <span class="who auto">agent self-fixed</span> — root cause: render() ran before const TYPES/typeOf/CSS were initialized — only function declarations hoist, not const (temporal dead zone).<div class="fix">fix: Moved the persist+render call to the end of the file, after all const declarations.</div></li></ul></details>
+<details><summary>Learnings (2)</summary><ul class="learn"><li>The roadmap should map the learning curve, not activity — only genuine questions/debates earn a node.</li><li>A trade-off is only worth recording if it was actually debated; a bug the agent fixes alone is low-signal.</li></ul></details>
+<div class="node-skills"><span class="chip sm">write-a-skill</span><span class="chip sm">flow-architect</span><span class="chip sm">claude-in-chrome</span></div>
+<p class="impact">🎯 Turned a throwaway text summary into a durable, growing visual record of how the project's thinking evolves.</p>
+    </div>
+  </div><div class="node">
+    <div class="rail"><span class="dot" style="background:#a855f7;box-shadow:0 0 0 4px #a855f733"></span></div>
+    <div class="card" style="--tc:#a855f7">
+      <div class="card-hd">
+        <span class="badge" style="background:#a855f7">Design</span>
+        <span class="date">2026-07-04</span>
+        <span class="diff" title="difficulty 4/5">●●●●○</span>
+      </div>
+      <h3>SkillGuard architecture grill + engine-only PRD</h3>
+      <p class="summary">Grilled a one-paragraph 'AI security for skills' idea into a decision-complete architecture (glossary, 2 ADRs, PRD, GitHub issue), walking a design tree one dependency at a time and isolating the single unproven risk into a shippable first slice.</p>
+<details open><summary>Trade-offs (5)</summary><ul class="to"><li><span class="pick">✔ Install-time CLI gate as surface #1</span> <span class="drop">✘ Chrome Extension or GitHub Actions interception</span>
+        <div class="why">The extension only catches browser-discovered skills and CI only catches repo-committed ones; the CLI gate sits at the one choke point every install path (clone/curl/zip) converges on, and stays agent-agnostic so browser/CI become later clients not rewrites.</div></li><li><span class="pick">✔ Hash-first, upload-on-miss with a shared verdict cache</span> <span class="drop">✘ Always upload full content, or scan fully locally</span>
+        <div class="why">Always-upload leaks content even for already-known skills; fully-local kills the shared cache and forces a weak on-device model. Hash-first keeps known skills private AND builds a network-effect cache where one scan protects every later developer.</div></li><li><span class="pick">✔ Canonical bundle hash (LF-normalized, junk-excluded) as skill identity</span> <span class="drop">✘ Raw byte hash, or source+version (repo+commit)</span>
+        <div class="why">User stress-tested with 'two devs download the same skill — same hash?': raw bytes diverge on Windows CRLF vs Linux LF (near-zero cache hits), source+version misses forks/mirrors. Only content-addressed + canonicalized identity makes 'same skill -&gt; same hash' hold cross-platform, which the whole moat depends on.</div></li><li><span class="pick">✔ Hybrid static + LLM detection with defense-in-depth</span> <span class="drop">✘ LLM-only, or static-rules-only</span>
+        <div class="why">Static alone misses semantic injection ('review env config files' with no banned keyword); LLM alone is costly and can be prompt-injected by the skill it reads. Hybrid pairs a deterministic static floor the LLM can't downgrade with semantic judgment that only ever escalates.</div></li><li><span class="pick">✔ Ship engine-only `skillguard scan` first</span> <span class="drop">✘ Build full v1 (gate + cache + DB + provenance) up front</span>
+        <div class="why">Detection quality is the sole unproven risk; everything else is known plumbing. Validating the engine against an eval corpus before wrapping infra around it avoids betting plumbing on an engine that might not work.</div></li></ul></details>
+<details><summary>Learnings (4)</summary><ul class="learn"><li>An install-time CLI gate is the universal choke point for AI-skill installs, because every discovery path still has to land the skill on disk before the agent trusts it.</li><li>A shared verdict cache only works if identity is content-addressed AND canonicalized (LF line endings, exclude .git/OS junk) so the same skill yields the same hash across Windows/Mac/Linux.</li><li>Static detection is grep-on-steroids for known-bad primitives (curl|bash, ~/.ssh, base64 -d | sh) but is blind to innocent-sounding semantic injection, which is what the LLM layer is for.</li><li>A security analyzer's input is adversarial toward the analyzer itself: a skill can try to talk the LLM into a CLEAN verdict, so manipulation attempts must escalate the verdict, backed by a static floor the LLM can never downgrade.</li></ul></details>
+<div class="node-skills"><span class="chip sm">grill-with-docs</span><span class="chip sm">grilling</span><span class="chip sm">domain-modeling</span><span class="chip sm">to-prd</span><span class="chip sm">git</span><span class="chip sm">gh-cli</span></div>
+<p class="impact">🎯 Converted a vague product idea into a documented, testable architecture that de-risks the one uncertain component first, demonstrating design judgment under adversarial security constraints.</p>
+    </div>
+  </div></main>
+<footer class="ft">SkillGuard · engineering-reflection — this file is regenerated from journey.json on every reflection.</footer>
+</body></html>
