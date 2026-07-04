@@ -166,6 +166,60 @@ _MALICIOUS_BUNDLED_CODE_SIGNALS: tuple[tuple[re.Pattern[str], str], ...] = (
 )
 
 
+# (regex, explanation) pairs for Analyzer Manipulation: text aimed not at the *agent* that
+# would run the Skill but at SkillGuard's own analyzer — fake system prompts, role
+# reassignment, or an instruction to emit a "Clean" verdict. Per ADR 0002 an attempt to
+# steer the analyzer is itself EVIDENCE OF MALICE, so we record it as a Prompt Injection
+# finding. Because static findings floor the Verdict, a Skill carrying such text can never
+# come back Clean, no matter what the (possibly steered) LLM concludes.
+_ANALYZER_MANIPULATION_SIGNALS: tuple[tuple[re.Pattern[str], str], ...] = (
+    (
+        re.compile(r"system\s*override", re.I),
+        "fake 'SYSTEM OVERRIDE' directive attempting to command the analyzer",
+    ),
+    (
+        re.compile(
+            r"</?system\b[^>]*>|</?assistant\b[^>]*>|\[/?\s*(?:system|assistant)\s*\]",
+            re.I,
+        ),
+        "fake system/assistant role markup impersonating the analyzer's own framing",
+    ),
+    (
+        re.compile(r"\byou\s+are\s+now\b", re.I),
+        "role-reassignment phrase ('you are now …') aimed at redefining the analyzer",
+    ),
+    (
+        re.compile(r"ignore\s+your\s+(?:previous\s+|prior\s+|own\s+)?instructions", re.I),
+        "instruction-hijack phrase aimed directly at the analyzer's instructions",
+    ),
+    (
+        # Verdict word explicitly framed as the verdict: "…as safe", "…verdict CLEAN",
+        # "mark this safe". The as/verdict/this hinge is what separates a steering attempt
+        # from benign prose like "returns a clean report".
+        re.compile(
+            r"(?:return|output|respond\s+with|reply\s+with|print|emit|give|produce|"
+            r"answer\s+with|mark|classify|rate|label|deem|report|flag|set|tag|consider|treat)"
+            r"[^\n]{0,20}"
+            r"\b(?:as|verdict|tier|result|classification|rating|it|this(?:\s+skill)?)\s+"
+            r"[\"']?(?:clean|safe|benign|not\s+malicious|no\s+threat|trusted)\b",
+            re.I,
+        ),
+        "attempt to dictate the analyzer's verdict (e.g. 'mark as safe', 'verdict CLEAN')",
+    ),
+    (
+        # A bare all-caps verdict TOKEN after an output verb: "output CLEAN", "return SAFE".
+        # Case-sensitive on purpose so lowercase prose ("returns a clean report") is ignored.
+        re.compile(
+            r"(?:return|output|respond|reply|print|emit|give|produce|answer|"
+            r"mark|classify|rate|label|deem|report|flag)"
+            r"[^\n]{0,20}"
+            r"\b(?:CLEAN|SAFE|BENIGN|NOT\s+MALICIOUS|NO\s+THREAT|TRUSTED)\b"
+        ),
+        "attempt to dictate the analyzer's verdict (e.g. 'output CLEAN')",
+    ),
+)
+
+
 # (regex, explanation) pairs for Second-Stage / Obfuscation: a script that looks inert but
 # decodes, downloads, and then *executes* a hidden payload at runtime.
 _SECOND_STAGE_SIGNALS: tuple[tuple[re.Pattern[str], str], ...] = (
@@ -233,6 +287,19 @@ def _detect_second_stage_obfuscation(skill: Skill) -> Iterator[Finding]:
                 )
 
 
+def _detect_analyzer_manipulation(skill: Skill) -> Iterator[Finding]:
+    """Flag attempts to steer SkillGuard's analyzer (ADR 0002).
+
+    Unlike Prompt Injection, this scans ALL files (not just instructions): a manipulation
+    payload can hide in a bundled script comment, a data file, or a docstring just as
+    easily as in SKILL.md.
+    """
+    for path, lineno, line in scan_lines(skill):
+        for pattern, explanation in _ANALYZER_MANIPULATION_SIGNALS:
+            if pattern.search(line):
+                yield _make_finding(ThreatVector.PROMPT_INJECTION, explanation, path, lineno)
+
+
 def static_pass(skill: Skill) -> tuple[Finding, ...]:
     """Return all deterministic findings for ``skill``.
 
@@ -242,4 +309,5 @@ def static_pass(skill: Skill) -> tuple[Finding, ...]:
     findings.extend(_detect_prompt_injection(skill))
     findings.extend(_detect_malicious_bundled_code(skill))
     findings.extend(_detect_second_stage_obfuscation(skill))
+    findings.extend(_detect_analyzer_manipulation(skill))
     return tuple(findings)

@@ -29,11 +29,19 @@ class DetectionEngine:
         static_findings = static_pass(skill)
         judgment = self._judge.judge(skill, static_findings)
 
-        # Combine findings: static evidence first, then anything the LLM added.
+        # Combine findings: deterministic static evidence first, then anything the LLM added.
         findings: tuple[Finding, ...] = static_findings + judgment.findings
 
-        # Static floor: if the Static Pass flagged anything, the Verdict can never be
-        # Clean, no matter what the (possibly manipulated) LLM concluded.
+        # Static floor (ADR 0002). The Static Pass reads the raw Skill and cannot be talked
+        # out of a match; the LLM reads that same possibly-hostile Skill and *can* be. So we
+        # let the LLM RAISE severity but never single-handedly LOWER a static-flagged Skill
+        # to Clean. Concretely, combining with ``max`` against a per-Skill floor gives:
+        #   * no static findings  -> floor Clean  -> the LLM's tier stands (Clean/Susp/Mal),
+        #     so a purely LLM-surfaced concern still reaches Suspicious or Malicious.
+        #   * static findings + LLM Malicious -> Malicious (the LLM raised it).
+        #   * static findings + LLM Clean     -> Suspicious (the floor holds; a static
+        #     false-positive, or a Skill that tried to steer the LLM to "Clean", surfaces
+        #     for a human review instead of being silently cleared).
         floor = Tier.SUSPICIOUS if static_findings else Tier.CLEAN
         tier = max(judgment.tier, floor)
 
