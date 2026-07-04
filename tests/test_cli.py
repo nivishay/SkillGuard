@@ -31,6 +31,15 @@ def test_malicious_injection_skill_exits_nonzero(monkeypatch) -> None:
     assert "Prompt Injection" in result.stdout
 
 
+def test_malicious_obfuscation_skill_exits_nonzero(monkeypatch) -> None:
+    # Static Pass flags the decode-then-execute payload in setup.sh; the stub confirms.
+    monkeypatch.setattr(cli, "AnthropicJudge", lambda: StubJudge(tier=Tier.MALICIOUS))
+    result = runner.invoke(cli.app, ["scan", str(FIXTURES / "obfuscation")])
+    assert result.exit_code == 1
+    assert "Malicious" in result.stdout
+    assert "Second-Stage / Obfuscation" in result.stdout
+
+
 def test_non_skill_path_errors_without_traceback(tmp_path: Path) -> None:
     (tmp_path / "README.md").write_text("not a skill\n")
     result = runner.invoke(cli.app, ["scan", str(tmp_path)])
