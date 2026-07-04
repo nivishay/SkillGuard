@@ -68,3 +68,19 @@ python evals/run_eval.py --offline  # plumbing check: Static Pass only, no netwo
 
 Corpus layout: `evals/corpus/clean/**` (expected Clean) and
 `evals/corpus/malicious/<vector>/**` (expected non-Clean, naming `<vector>`).
+
+### Flow tester (dev tool)
+
+`devtools/tester.py` is a small local web app for watching a scan flow through the engine
+stage by stage — Load Skill → Static Pass (findings stream in) → LLM Judgment → Verdict. It
+drives the real engine and reuses `combine_verdict`, so what you see is exactly what
+`analyze` produces. It lives outside the shipped `skillguard` package (the engine-only MVP
+has no UI surface).
+
+```bash
+python devtools/tester.py            # real scans — needs ANTHROPIC_API_KEY
+python devtools/tester.py --offline  # Static Pass only, no network/key
+```
+
+Open http://localhost:8000, pick a Skill from the bundled corpus dropdown (or paste any
+folder path), and click Scan.
