@@ -1,0 +1,17 @@
+# Claude Code machine-local settings
+.claude/settings.local.json
+
+# OS / editor junk
+.DS_Store
+Thumbs.db
+*.swp
+
+# Dependencies / build (for when code lands)
+node_modules/
+dist/
+build/
+__pycache__/
+*.pyc
+.venv/
+venv/
+.env
