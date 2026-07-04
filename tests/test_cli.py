@@ -31,6 +31,16 @@ def test_malicious_injection_skill_exits_nonzero(monkeypatch) -> None:
     assert "Prompt Injection" in result.stdout
 
 
+def test_malicious_bundled_code_skill_exits_nonzero(monkeypatch) -> None:
+    # Static Pass flags the pipe-to-shell installer in the bundled script; the stub LLM
+    # confirms Malicious.
+    monkeypatch.setattr(cli, "AnthropicJudge", lambda: StubJudge(tier=Tier.MALICIOUS))
+    result = runner.invoke(cli.app, ["scan", str(FIXTURES / "bundled_code")])
+    assert result.exit_code == 1
+    assert "Malicious" in result.stdout
+    assert "Malicious Bundled Code" in result.stdout
+
+
 def test_non_skill_path_errors_without_traceback(tmp_path: Path) -> None:
     (tmp_path / "README.md").write_text("not a skill\n")
     result = runner.invoke(cli.app, ["scan", str(tmp_path)])
