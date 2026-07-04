@@ -54,5 +54,17 @@ ruff check .
 mypy
 ```
 
-The eval harness (`evals/`) measures detection accuracy against the real model and is run
-separately from the deterministic suite.
+### Eval harness
+
+The eval harness (`evals/`) measures detection *accuracy* against the real model — detection
+rate, false-positive rate, per-scan latency, and vector attribution — over a corpus of clean
+and hand-crafted malicious Skills. It is a measurement to track over time, kept out of the
+deterministic pytest suite because the model is non-deterministic.
+
+```bash
+python evals/run_eval.py            # real run — needs ANTHROPIC_API_KEY
+python evals/run_eval.py --offline  # plumbing check: Static Pass only, no network/key
+```
+
+Corpus layout: `evals/corpus/clean/**` (expected Clean) and
+`evals/corpus/malicious/<vector>/**` (expected non-Clean, naming `<vector>`).
