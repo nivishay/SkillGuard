@@ -12,6 +12,10 @@ dist/
 build/
 __pycache__/
 *.pyc
+*.egg-info/
 .venv/
 venv/
 .env
+.mypy_cache/
+.ruff_cache/
+.pytest_cache/

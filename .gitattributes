@@ -1,0 +1,6 @@
+# SkillGuard normalizes Skill files to LF; keep the repo itself LF-only so fixtures and
+# canonicalization behave identically on every platform.
+* text=auto eol=lf
+*.png binary
+*.jpg binary
+*.gif binary
