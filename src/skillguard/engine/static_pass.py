@@ -35,6 +35,27 @@ def _is_instruction_file(path: str) -> bool:
     return path.lower().endswith(".md")
 
 
+# Suffixes of files the agent may run as executable code (as opposed to reading as prose).
+_SCRIPT_SUFFIXES = (
+    ".sh",
+    ".bash",
+    ".zsh",
+    ".py",
+    ".js",
+    ".cjs",
+    ".mjs",
+    ".rb",
+    ".pl",
+    ".ps1",
+)
+
+
+def _is_script_file(path: str) -> bool:
+    """Malicious Bundled Code lives in the executable scripts an agent runs, not in the
+    natural-language instructions (Prompt Injection owns those)."""
+    return path.lower().endswith(_SCRIPT_SUFFIXES)
+
+
 # (regex, explanation) pairs for Prompt Injection: instructions that redirect the agent to
 # read secrets, exfiltrate data, run destructive commands, or disable its own safety.
 _PROMPT_INJECTION_SIGNALS: tuple[tuple[re.Pattern[str], str], ...] = (
@@ -97,6 +118,65 @@ def _detect_prompt_injection(skill: Skill) -> Iterator[Finding]:
                 yield _make_finding(ThreatVector.PROMPT_INJECTION, explanation, path, lineno)
 
 
+# (regex, explanation) pairs for Malicious Bundled Code: dangerous constructs in scripts an
+# agent runs — pipe-to-shell installers, reverse shells, and destructive/disk-wipe commands.
+_MALICIOUS_BUNDLED_CODE_SIGNALS: tuple[tuple[re.Pattern[str], str], ...] = (
+    (
+        re.compile(
+            r"\b(?:curl|wget)\b[^\n]*\|\s*(?:sudo\s+)?(?:bash|sh|zsh|ksh)\b",
+            re.I,
+        ),
+        "pipe-to-shell installer that executes downloaded code without review",
+    ),
+    (
+        re.compile(r"/dev/tcp/", re.I),
+        "reverse shell via a /dev/tcp/ network redirection",
+    ),
+    (
+        re.compile(r"\bn(?:c|cat)\b[^\n]*\s-e\b", re.I),
+        "reverse shell spawned by netcat's -e execute flag",
+    ),
+    (
+        re.compile(r"os\.dup2\s*\(|\bsocket\s*,\s*subprocess\s*,\s*os\b", re.I),
+        "python reverse-shell one-liner wiring a socket to a shell",
+    ),
+    (
+        re.compile(r"\bSocket\b[^\n]*\bexec\s*\(\s*[\"']/bin/(?:ba)?sh", re.I),
+        "perl reverse-shell one-liner wiring a socket to a shell",
+    ),
+    (
+        re.compile(
+            r"\brm\s+(?:-\w+\s+)*-\w*(?:rf|fr)\w*\s+(?:/(?:\s|$|\*)|~|\$HOME)",
+            re.I,
+        ),
+        "destructive recursive delete targeting the filesystem root or home",
+    ),
+    (
+        re.compile(r"\bmkfs(?:\.\w+)?\b[^\n]*\s/dev/", re.I),
+        "disk-wipe that reformats a block device",
+    ),
+    (
+        re.compile(r"\bdd\b[^\n]*\bof=/dev/(?:sd|nvme|hd|vd|disk)", re.I),
+        "disk-wipe writing raw bytes over a block device",
+    ),
+    (
+        re.compile(r":\(\)\s*\{\s*:\|:&\s*\}\s*;\s*:"),
+        "fork bomb that exhausts process resources",
+    ),
+)
+
+
+def _detect_malicious_bundled_code(skill: Skill) -> Iterator[Finding]:
+    for path, lineno, line in scan_lines(skill):
+        if not _is_script_file(path):
+            continue
+        for pattern, explanation in _MALICIOUS_BUNDLED_CODE_SIGNALS:
+            if pattern.search(line):
+                yield _make_finding(
+                    ThreatVector.MALICIOUS_BUNDLED_CODE, explanation, path, lineno
+                )
+
+
 def static_pass(skill: Skill) -> tuple[Finding, ...]:
     """Return all deterministic findings for ``skill``.
 
@@ -104,4 +184,5 @@ def static_pass(skill: Skill) -> tuple[Finding, ...]:
     """
     findings: list[Finding] = []
     findings.extend(_detect_prompt_injection(skill))
+    findings.extend(_detect_malicious_bundled_code(skill))
     return tuple(findings)
