@@ -36,6 +36,7 @@ def _is_instruction_file(path: str) -> bool:
 
 
 # Suffixes of files the agent may run as executable code (as opposed to reading as prose).
+# Shared by the Malicious Bundled Code and Second-Stage / Obfuscation detectors.
 _SCRIPT_SUFFIXES = (
     ".sh",
     ".bash",
@@ -51,8 +52,7 @@ _SCRIPT_SUFFIXES = (
 
 
 def _is_script_file(path: str) -> bool:
-    """Malicious Bundled Code lives in the executable scripts an agent runs, not in the
-    natural-language instructions (Prompt Injection owns those)."""
+    """True for executable scripts an agent runs (Prompt Injection owns the .md prose)."""
     return path.lower().endswith(_SCRIPT_SUFFIXES)
 
 
@@ -166,6 +166,51 @@ _MALICIOUS_BUNDLED_CODE_SIGNALS: tuple[tuple[re.Pattern[str], str], ...] = (
 )
 
 
+# (regex, explanation) pairs for Second-Stage / Obfuscation: a script that looks inert but
+# decodes, downloads, and then *executes* a hidden payload at runtime.
+_SECOND_STAGE_SIGNALS: tuple[tuple[re.Pattern[str], str], ...] = (
+    (
+        re.compile(
+            r"base64\s+(?:-d|-D|--decode)\b[^\n]*\|\s*(?:sh|bash|zsh|dash|ksh)\b",
+            re.I,
+        ),
+        "base64-decoded content piped straight into a shell (decode-then-execute)",
+    ),
+    (
+        re.compile(
+            r"\beval\b[^\n]*(?:\$\(|`)\s*(?:curl|wget|base64|fetch)\b",
+            re.I,
+        ),
+        "eval over decoded or downloaded content (decode/fetch-then-execute)",
+    ),
+    (
+        re.compile(
+            r"\b(?:exec|eval)\s*\([^\n]*"
+            r"(?:b64decode|base64|urlopen|urllib|requests\.get|fetch\(|\.text)",
+            re.I,
+        ),
+        "exec/eval over decoded or downloaded data at runtime",
+    ),
+    (
+        # Piping a download into a *non-shell* interpreter is fetch-and-run; piping into a
+        # shell (curl | bash) is owned by the Malicious Bundled Code detector.
+        re.compile(
+            r"\b(?:curl|wget)\b[^\n]*\|\s*(?:python3?|node|ruby|perl)\b",
+            re.I,
+        ),
+        "downloads a payload and pipes it into a language interpreter (fetch-and-run)",
+    ),
+    (
+        re.compile(
+            r"\b(?:curl|wget)\b[^\n]*\s-[oO]\b[^\n]*(?:&&|;)\s*"
+            r"(?:sh|bash|zsh|dash|python3?|node|ruby|perl)\b",
+            re.I,
+        ),
+        "downloads a script to disk then runs it (fetch-and-run)",
+    ),
+)
+
+
 def _detect_malicious_bundled_code(skill: Skill) -> Iterator[Finding]:
     for path, lineno, line in scan_lines(skill):
         if not _is_script_file(path):
@@ -177,6 +222,17 @@ def _detect_malicious_bundled_code(skill: Skill) -> Iterator[Finding]:
                 )
 
 
+def _detect_second_stage_obfuscation(skill: Skill) -> Iterator[Finding]:
+    for path, lineno, line in scan_lines(skill):
+        if not _is_script_file(path):
+            continue
+        for pattern, explanation in _SECOND_STAGE_SIGNALS:
+            if pattern.search(line):
+                yield _make_finding(
+                    ThreatVector.SECOND_STAGE_OBFUSCATION, explanation, path, lineno
+                )
+
+
 def static_pass(skill: Skill) -> tuple[Finding, ...]:
     """Return all deterministic findings for ``skill``.
 
@@ -185,4 +241,5 @@ def static_pass(skill: Skill) -> tuple[Finding, ...]:
     findings: list[Finding] = []
     findings.extend(_detect_prompt_injection(skill))
     findings.extend(_detect_malicious_bundled_code(skill))
+    findings.extend(_detect_second_stage_obfuscation(skill))
     return tuple(findings)
