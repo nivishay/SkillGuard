@@ -69,11 +69,7 @@ class VerdictStore:
             json.dumps(data, indent=2, ensure_ascii=False), encoding="utf-8"
         )
 
-    def get(self, bundle_hash: str) -> VerdictRecord | None:
-        """Return the cached record for ``bundle_hash``, or ``None`` on a miss."""
-        raw = self._load().get(bundle_hash)
-        if raw is None:
-            return None
+    def _record_from_raw(self, raw: dict[str, Any]) -> VerdictRecord:
         findings = tuple(_finding_from_dict(f) for f in raw.get("findings", []))
         return VerdictRecord(
             tier=Tier(raw["tier"]),
@@ -81,6 +77,17 @@ class VerdictStore:
             engine_version=str(raw["engine_version"]),
             scanned_at=str(raw["scanned_at"]),
         )
+
+    def get(self, bundle_hash: str) -> VerdictRecord | None:
+        """Return the cached record for ``bundle_hash``, or ``None`` on a miss."""
+        raw = self._load().get(bundle_hash)
+        if raw is None:
+            return None
+        return self._record_from_raw(raw)
+
+    def items(self) -> list[tuple[str, VerdictRecord]]:
+        """Return every cached ``(bundle_hash, record)`` pair (for ``skillguard status``)."""
+        return [(h, self._record_from_raw(raw)) for h, raw in sorted(self._load().items())]
 
     def put(
         self, bundle_hash: str, verdict: Verdict, *, engine_version: str

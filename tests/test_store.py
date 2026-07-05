@@ -70,3 +70,20 @@ def test_clean_verdict_with_no_findings_roundtrips(tmp_path: Path) -> None:
     assert record is not None
     assert record.tier is Tier.CLEAN
     assert record.findings == ()
+
+
+def test_items_on_empty_store_returns_empty_list(tmp_path: Path) -> None:
+    assert VerdictStore(tmp_path).items() == []
+
+
+def test_items_enumerates_every_stored_record(tmp_path: Path) -> None:
+    store = VerdictStore(tmp_path)
+    store.put("clean1", Verdict(tier=Tier.CLEAN), engine_version="0.1.0")
+    store.put("evil2", _malicious_verdict(), engine_version="0.1.0")
+
+    by_hash = dict(store.items())
+
+    assert set(by_hash) == {"clean1", "evil2"}
+    assert by_hash["clean1"].tier is Tier.CLEAN
+    assert by_hash["evil2"].tier is Tier.MALICIOUS
+    assert by_hash["evil2"].findings[0].vector is ThreatVector.PROMPT_INJECTION
