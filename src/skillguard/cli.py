@@ -13,7 +13,10 @@ import typer
 
 from skillguard.engine import DetectionEngine
 from skillguard.engine.llm.anthropic_judge import AnthropicJudge, LLMJudgeError
+from skillguard.hooks import session_start
+from skillguard.install import install_hooks
 from skillguard.loader import SkillLoadError, load_skill
+from skillguard.paths import claude_home
 from skillguard.rendering import exit_code_for, render_verdict
 
 app = typer.Typer(
@@ -54,3 +57,28 @@ def scan(
 
     render_verdict(verdict)
     raise typer.Exit(code=exit_code_for(verdict))
+
+
+def claude_settings_path() -> Path:
+    """The Claude Code settings file the Endpoint Gate hooks are written into."""
+    return claude_home() / "settings.json"
+
+
+@app.command("install-hook")
+def install_hook() -> None:
+    """Wire the Endpoint Gate into Claude Code (writes the SessionStart hook into settings)."""
+    settings_path = claude_settings_path()
+    install_hooks(settings_path)
+    typer.secho(f"Installed SkillGuard hooks into {settings_path}", fg=typer.colors.GREEN)
+
+
+@app.command("hook", hidden=True)
+def hook(
+    event: Annotated[str, typer.Argument(help="Hook event, e.g. 'session-start'.")],
+) -> None:
+    """Internal dispatcher Claude Code invokes for a hook event. Not for direct use."""
+    if event == "session-start":
+        session_start.main()
+        return
+    typer.secho(f"error: unknown hook event: {event}", fg=typer.colors.RED, err=True)
+    raise typer.Exit(code=_USAGE_ERROR)
