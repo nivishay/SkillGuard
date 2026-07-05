@@ -19,3 +19,6 @@ venv/
 .mypy_cache/
 .ruff_cache/
 .pytest_cache/
+
+# Agent worktrees (temporary, isolated checkouts)
+.claude/worktrees/
