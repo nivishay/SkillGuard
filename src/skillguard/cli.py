@@ -11,12 +11,15 @@ from typing import Annotated
 
 import typer
 
+from skillguard.allowlist import Allowlist
 from skillguard.engine import DetectionEngine
 from skillguard.engine.llm.anthropic_judge import AnthropicJudge, LLMJudgeError
+from skillguard.hash import canonical_bundle_hash
 from skillguard.hooks import session_start
 from skillguard.install import install_hooks
 from skillguard.loader import SkillLoadError, load_skill
-from skillguard.paths import claude_home
+from skillguard.paths import claude_home, quarantine_root, store_root
+from skillguard.quarantine import Quarantine, QuarantineError
 from skillguard.rendering import exit_code_for, render_verdict
 
 app = typer.Typer(
@@ -70,6 +73,42 @@ def install_hook() -> None:
     settings_path = claude_settings_path()
     install_hooks(settings_path)
     typer.secho(f"Installed SkillGuard hooks into {settings_path}", fg=typer.colors.GREEN)
+
+
+@app.command()
+def restore(
+    name: Annotated[
+        str,
+        typer.Argument(help="Name of the quarantined Skill to move back (see 'status')."),
+    ],
+) -> None:
+    """Move a quarantined Skill back to its original location (the false-positive escape hatch)."""
+    quarantine = Quarantine(quarantine_root())
+    try:
+        original = quarantine.restore(name)
+    except QuarantineError as exc:
+        typer.secho(f"error: {exc}", fg=typer.colors.RED, err=True)
+        raise typer.Exit(code=_USAGE_ERROR) from exc
+    typer.secho(f"Restored {name} to {original}", fg=typer.colors.GREEN)
+
+
+@app.command()
+def allow(
+    folder: Annotated[
+        Path,
+        typer.Argument(help="Path to the Skill folder to approve."),
+    ],
+) -> None:
+    """Approve a Skill by its Canonical Bundle Hash so the gate passes this exact content."""
+    try:
+        skill = load_skill(folder)
+    except SkillLoadError as exc:
+        typer.secho(f"error: {exc}", fg=typer.colors.RED, err=True)
+        raise typer.Exit(code=_USAGE_ERROR) from exc
+
+    bundle_hash = canonical_bundle_hash(skill)
+    Allowlist(store_root()).allow(bundle_hash)
+    typer.secho(f"Allowed {folder} ({bundle_hash[:12]})", fg=typer.colors.GREEN)
 
 
 @app.command("hook", hidden=True)

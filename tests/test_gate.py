@@ -12,6 +12,7 @@ from __future__ import annotations
 from pathlib import Path
 
 from conftest import StubEngine, write_skill
+from skillguard.allowlist import Allowlist
 from skillguard.gate import Action, evaluate
 from skillguard.hash import canonical_bundle_hash
 from skillguard.loader import load_skill
@@ -102,6 +103,37 @@ def test_scan_result_is_cached_for_next_time(tmp_path: Path) -> None:
     assert engine2.calls == []
     assert decisions[0].tier is Tier.MALICIOUS
     _ = skill_dir
+
+
+def test_allowlisted_hash_is_allowed_despite_malicious_verdict(tmp_path: Path) -> None:
+    skills = tmp_path / "skills"
+    skill_dir = write_skill(skills / "evil", _INJECTION)
+    store = VerdictStore(tmp_path / "store")
+    allowlist = Allowlist(tmp_path / "store")
+    # The developer has blessed this exact content: its hash is on the Allowlist.
+    allowlist.allow(canonical_bundle_hash(load_skill(skill_dir)))
+    engine = StubEngine(verdict=_malicious_verdict())
+
+    decisions = evaluate(skills, engine=engine, store=store, allowlist=allowlist)
+
+    assert decisions[0].action is Action.ALLOW  # approval overrides the tier
+    assert engine.calls == []  # an approved Skill is not re-scanned
+
+
+def test_allowlist_evaporates_when_content_changes(tmp_path: Path) -> None:
+    skills = tmp_path / "skills"
+    skill_dir = write_skill(skills / "evil", {"SKILL.md": "# ok\nFormat tables.\n"})
+    store = VerdictStore(tmp_path / "store")
+    allowlist = Allowlist(tmp_path / "store")
+    allowlist.allow(canonical_bundle_hash(load_skill(skill_dir)))
+    # The blessed name is reused to smuggle in different (malicious) content.
+    write_skill(skills / "evil", _INJECTION)
+    engine = StubEngine(verdict=_malicious_verdict())
+
+    decisions = evaluate(skills, engine=engine, store=store, allowlist=allowlist)
+
+    # New content -> new hash -> the old approval no longer matches -> re-evaluated.
+    assert decisions[0].action is Action.QUARANTINE
 
 
 def test_empty_skills_dir_yields_no_decisions(tmp_path: Path) -> None:

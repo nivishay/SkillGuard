@@ -63,6 +63,12 @@ class EnginePort(Protocol):
     def analyze(self, skill: Skill) -> Verdict: ...
 
 
+class AllowlistPort(Protocol):
+    """The slice of the Allowlist the gate needs: is this exact content approved?"""
+
+    def contains(self, bundle_hash: str) -> bool: ...
+
+
 def enumerate_skill_dirs(skills_dir: Path | str) -> list[Path]:
     """Return every Skill root under ``skills_dir`` (each folder holding a ``SKILL.md``).
 
@@ -81,6 +87,7 @@ def evaluate(
     engine: EnginePort,
     store: VerdictStore,
     posture: Posture | None = None,
+    allowlist: AllowlistPort | None = None,
     engine_version: str = __version__,
 ) -> list[GateDecision]:
     """Decide an :class:`Action` for every Skill under ``skills_dir``.
@@ -88,6 +95,10 @@ def evaluate(
     For each Skill: hash it, look the hash up in ``store``, scan on a miss (caching the
     result), then map its tier through ``posture``. A Skill that cannot be scanned is held,
     never allowed (fail toward blocking).
+
+    A Skill whose Canonical Bundle Hash is on ``allowlist`` is allowed outright without a
+    scan — a persisted developer approval. Because the approval is keyed by hash, it applies
+    to that exact content only: change the content and the approval no longer matches.
     """
     posture = posture if posture is not None else DEFAULT_POSTURE
     decisions: list[GateDecision] = []
@@ -98,6 +109,20 @@ def evaluate(
         except SkillLoadError:
             continue
         bundle_hash = canonical_bundle_hash(skill)
+
+        if allowlist is not None and allowlist.contains(bundle_hash):
+            cached = store.get(bundle_hash)
+            decisions.append(
+                GateDecision(
+                    skill_path=str(skill_dir),
+                    bundle_hash=bundle_hash,
+                    tier=cached.tier if cached is not None else None,
+                    action=Action.ALLOW,
+                    findings=cached.findings if cached is not None else (),
+                    scanned=False,
+                )
+            )
+            continue
 
         record = store.get(bundle_hash)
         scanned = False

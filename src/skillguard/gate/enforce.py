@@ -13,7 +13,14 @@ from collections.abc import Sequence
 from dataclasses import dataclass, field
 from pathlib import Path
 
-from skillguard.gate.core import Action, EnginePort, GateDecision, Posture, evaluate
+from skillguard.gate.core import (
+    Action,
+    AllowlistPort,
+    EnginePort,
+    GateDecision,
+    Posture,
+    evaluate,
+)
 from skillguard.quarantine import Quarantine, QuarantineEntry
 from skillguard.store import VerdictStore
 
@@ -33,13 +40,16 @@ def scan_and_quarantine(
     store: VerdictStore,
     quarantine: Quarantine,
     posture: Posture | None = None,
+    allowlist: AllowlistPort | None = None,
 ) -> Enforcement:
     """Evaluate every Skill under each of ``skills_dirs`` and quarantine the Malicious ones."""
     decisions: list[GateDecision] = []
     quarantined: list[tuple[QuarantineEntry, GateDecision]] = []
 
     for skills_dir in skills_dirs:
-        for decision in evaluate(skills_dir, engine=engine, store=store, posture=posture):
+        for decision in evaluate(
+            skills_dir, engine=engine, store=store, posture=posture, allowlist=allowlist
+        ):
             decisions.append(decision)
             if decision.action is Action.QUARANTINE:
                 entry = quarantine.quarantine(

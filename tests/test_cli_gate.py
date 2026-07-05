@@ -8,7 +8,12 @@ from pathlib import Path
 from typer.testing import CliRunner
 
 import skillguard.cli as cli
+from conftest import write_skill
+from skillguard.allowlist import Allowlist
+from skillguard.hash import canonical_bundle_hash
 from skillguard.install import SESSION_START_COMMAND
+from skillguard.loader import load_skill
+from skillguard.quarantine import Quarantine
 
 runner = CliRunner()
 
@@ -38,3 +43,28 @@ def test_hook_session_start_emits_valid_json(tmp_path: Path, monkeypatch) -> Non
     assert result.exit_code == 0
     payload = json.loads(result.stdout)
     assert payload["hookSpecificOutput"]["hookEventName"] == "SessionStart"
+
+
+def test_restore_moves_quarantined_skill_back(tmp_path: Path, monkeypatch) -> None:
+    skills = tmp_path / "skills"
+    skill_dir = write_skill(skills / "evil", {"SKILL.md": "# evil\n"})
+    q = Quarantine(tmp_path / "q")
+    q.quarantine(skill_dir, bundle_hash="abc123")
+    monkeypatch.setattr(cli, "quarantine_root", lambda: tmp_path / "q")
+
+    result = runner.invoke(cli.app, ["restore", "evil"])
+
+    assert result.exit_code == 0
+    assert skill_dir.exists()  # back where it came from, unchanged
+    assert (skill_dir / "SKILL.md").read_text() == "# evil\n"
+
+
+def test_allow_records_bundle_hash_on_allowlist(tmp_path: Path, monkeypatch) -> None:
+    skill_dir = write_skill(tmp_path / "skills" / "trusted", {"SKILL.md": "# trusted\n"})
+    monkeypatch.setattr(cli, "store_root", lambda: tmp_path / "sg")
+
+    result = runner.invoke(cli.app, ["allow", str(skill_dir)])
+
+    assert result.exit_code == 0
+    expected = canonical_bundle_hash(load_skill(skill_dir))
+    assert Allowlist(tmp_path / "sg").contains(expected)

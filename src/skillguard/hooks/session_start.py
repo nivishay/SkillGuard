@@ -18,9 +18,10 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
+from skillguard.allowlist import Allowlist
 from skillguard.engine import DetectionEngine
 from skillguard.engine.llm.anthropic_judge import AnthropicJudge
-from skillguard.gate.core import EnginePort, Posture
+from skillguard.gate.core import AllowlistPort, EnginePort, Posture
 from skillguard.gate.enforce import Enforcement, scan_and_quarantine
 from skillguard.paths import default_skills_dirs, quarantine_root, store_root
 from skillguard.quarantine import Quarantine
@@ -68,10 +69,16 @@ def run(
     store: VerdictStore,
     quarantine: Quarantine,
     posture: Posture | None = None,
+    allowlist: AllowlistPort | None = None,
 ) -> SessionStartResult:
     """Scan ``skills_dirs``, quarantine Malicious Skills, and build the hook payload."""
     enforcement = scan_and_quarantine(
-        skills_dirs, engine=engine, store=store, quarantine=quarantine, posture=posture
+        skills_dirs,
+        engine=engine,
+        store=store,
+        quarantine=quarantine,
+        posture=posture,
+        allowlist=allowlist,
     )
     return SessionStartResult(enforcement=enforcement, hook_output=_build_output(enforcement))
 
@@ -89,6 +96,7 @@ def main() -> None:
         engine=engine,
         store=VerdictStore(store_root()),
         quarantine=Quarantine(quarantine_root()),
+        allowlist=Allowlist(store_root()),
     )
     json.dump(result.hook_output, sys.stdout)
 

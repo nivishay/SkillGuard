@@ -20,6 +20,7 @@ from __future__ import annotations
 from skillguard.gate.core import (
     DEFAULT_POSTURE,
     Action,
+    AllowlistPort,
     GateDecision,
     Posture,
     enumerate_skill_dirs,
@@ -28,6 +29,7 @@ from skillguard.gate.core import (
 
 __all__ = [
     "Action",
+    "AllowlistPort",
     "DEFAULT_POSTURE",
     "GateDecision",
     "Posture",
