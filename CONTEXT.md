@@ -31,6 +31,30 @@ The result SkillGuard returns for a Skill. One of three tiers:
 - **Malicious** — one or more Threat Vectors confirmed; the gate blocks by default, and the developer may force an override.
 _Avoid_: Score, rating (a Verdict is a tier, not a number)
 
+**Endpoint Gate**:
+The involuntary checkpoint that runs on an individual developer's machine and invokes the Detection Engine at the moment a Skill would otherwise be trusted or run (e.g. via an agent hook or a watch on the skills directory). Unlike a voluntary wrapper command, it catches Skills no matter how they arrived — `git clone`, manual copy, or riding inside a cloned project repo — and enforces the Verdict (block/warn/allow) locally. It is the same artifact in both the solo-developer product and the organization product.
+_Avoid_: Scanner, wrapper, plugin
+
+**Control Plane**:
+The central organization-facing service that sits above many Endpoint Gates. It distributes/ensures the gate is present on every developer's machine, enforces org **Policy** (which Verdict tiers and which specific Skills are allowed), aggregates each Skill's Verdict once and shares it across the fleet, records an audit trail, and shows which Skills are in use across the organization. It governs; it does not itself distribute a curated catalog (SkillGuard is EDR for Skills, not a marketplace).
+_Avoid_: Dashboard, marketplace, registry, server
+
+**Quarantine**:
+The default enforcement action the Endpoint Gate takes on a **Malicious** Verdict: it moves the offending Skill's folder out of the scanned skills directory into a holding area so the agent never loads it (crucially, so a Prompt-Injection payload in the Skill's description never enters the agent's context). Quarantine is reserved for the Malicious tier only, is always reversible (moved, never deleted; restorable and overridable), and is always surfaced to the developer with the reason — never silent. Modeled on antivirus/EDR quarantine.
+_Avoid_: Delete, remove, block (block is vaguer — quarantine is the specific reversible move)
+
+**Enforcement Posture**:
+The configurable mapping from each Verdict tier to the action the Endpoint Gate takes (e.g. quarantine / warn-and-confirm / deny-tool-call / allow). It is a dial, not hard-coded: the shipped default is quarantine-on-Malicious, warn-and-confirm-on-Suspicious, silent-allow-on-Clean; a nervous developer may pick a non-destructive posture (weaker, since only removing a Skill from the scanned directory can stop injection-via-description); an organization sets a stricter posture centrally via **Policy** in the Control Plane. Turning on auto-quarantine by default is earned by the eval harness's measured false-positive rate on Malicious.
+_Avoid_: Mode, setting, rule
+
+**Finding**:
+A single piece of evidence inside a Verdict: which **Threat Vector** was detected, a short human-readable explanation, and a location (which file and where in it). Findings are *why* a Verdict is what it is. The Endpoint Gate must surface a Skill's Findings to the developer at the warn/confirm and quarantine moments — a tier without its evidence is not acceptable.
+_Avoid_: Alert, hit, match
+
+**Allowlist**:
+The set of persisted developer/organization approvals that let an otherwise-gated Skill through. Each approval is keyed by the Skill's **Canonical Bundle Hash**, so it applies to that exact content only — if the Skill's content changes, the approval evaporates and the Skill is re-evaluated (an approved name cannot be used to smuggle in swapped-out malicious content). Locally it is the memory of "the developer already confirmed this Suspicious Skill"; at organization scale it is held centrally as part of **Policy** in the Control Plane. Its opposite, an explicit block regardless of Verdict, is a denylist.
+_Avoid_: Whitelist, exceptions, ignore list
+
 **Threat Vector**:
 A named category of harmful behavior SkillGuard looks for. v1 vectors:
 - **Prompt Injection** — SKILL.md instructions that redirect the agent to harmful acts (read secrets/keys, exfiltrate data, run destructive commands, disable its own safety, escalate permissions).
