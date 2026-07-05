@@ -69,6 +69,22 @@ class AllowlistPort(Protocol):
     def contains(self, bundle_hash: str) -> bool: ...
 
 
+class ApprovalPort(Protocol):
+    """The slice needed to *persist* an approval: record this content as blessed.
+
+    Kept separate from :class:`AllowlistPort` because ``evaluate`` only ever *reads* the
+    Allowlist; only the Suspicious warn-and-confirm flow writes to it.
+    """
+
+    def allow(self, bundle_hash: str) -> None: ...
+
+
+class AllowlistStore(AllowlistPort, ApprovalPort, Protocol):
+    """The full Allowlist the enforcement layer needs: consult it during evaluation
+    (:meth:`contains`) *and* persist a new approval (:meth:`allow`) when a human confirms a
+    Suspicious Skill. The concrete :class:`skillguard.allowlist.Allowlist` satisfies it."""
+
+
 def enumerate_skill_dirs(skills_dir: Path | str) -> list[Path]:
     """Return every Skill root under ``skills_dir`` (each folder holding a ``SKILL.md``).
 

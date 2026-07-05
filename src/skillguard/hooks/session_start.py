@@ -21,8 +21,8 @@ from typing import Any
 from skillguard.allowlist import Allowlist
 from skillguard.engine import DetectionEngine
 from skillguard.engine.llm.anthropic_judge import AnthropicJudge
-from skillguard.gate.core import AllowlistPort, EnginePort, Posture
-from skillguard.gate.enforce import Enforcement, scan_and_quarantine
+from skillguard.gate.core import AllowlistStore, EnginePort, GateDecision, Posture
+from skillguard.gate.enforce import Confirm, Enforcement, scan_and_quarantine
 from skillguard.paths import default_skills_dirs, quarantine_root, store_root
 from skillguard.quarantine import Quarantine
 from skillguard.store import VerdictStore
@@ -36,18 +36,32 @@ class SessionStartResult:
     hook_output: dict[str, Any]
 
 
-def _context_lines(enforcement: Enforcement) -> str:
-    lines = ["SkillGuard scanned your Skills at session start."]
-    if not enforcement.quarantined:
-        return lines[0] + " No Malicious Skills found."
+def _finding_lines(decision: GateDecision, lines: list[str]) -> None:
+    for finding in decision.findings:
+        lines.append(f"    [{finding.vector}] {finding.location}: {finding.explanation}")
 
-    lines.append(
-        f"Quarantined {len(enforcement.quarantined)} Malicious Skill(s) before load:"
-    )
-    for entry, decision in enforcement.quarantined:
-        lines.append(f"- {entry.name} (moved to {entry.quarantined_path})")
-        for finding in decision.findings:
-            lines.append(f"    [{finding.vector}] {finding.location}: {finding.explanation}")
+
+def _context_lines(enforcement: Enforcement) -> str:
+    intro = "SkillGuard scanned your Skills at session start."
+    if not enforcement.quarantined and not enforcement.held:
+        return intro + " No Malicious or unresolved Suspicious Skills found."
+
+    lines = [intro]
+    if enforcement.quarantined:
+        lines.append(
+            f"Quarantined {len(enforcement.quarantined)} Malicious Skill(s) before load:"
+        )
+        for entry, decision in enforcement.quarantined:
+            lines.append(f"- {entry.name} (moved to {entry.quarantined_path})")
+            _finding_lines(decision, lines)
+    if enforcement.held:
+        lines.append(
+            f"Held {len(enforcement.held)} Suspicious Skill(s) pending your review "
+            "(approve with 'skillguard allow', then 'skillguard restore'):"
+        )
+        for entry, decision in enforcement.held:
+            lines.append(f"- {entry.name} (held at {entry.quarantined_path})")
+            _finding_lines(decision, lines)
     return "\n".join(lines)
 
 
@@ -56,8 +70,8 @@ def _build_output(enforcement: Enforcement) -> dict[str, Any]:
         "hookEventName": "SessionStart",
         "additionalContext": _context_lines(enforcement),
     }
-    # Only force a reload when we actually changed the skills directory.
-    if enforcement.quarantined:
+    # Force a reload only when we actually changed the skills directory (moved something out).
+    if enforcement.quarantined or enforcement.held:
         hook_specific["reloadSkills"] = True
     return {"hookSpecificOutput": hook_specific}
 
@@ -69,9 +83,17 @@ def run(
     store: VerdictStore,
     quarantine: Quarantine,
     posture: Posture | None = None,
-    allowlist: AllowlistPort | None = None,
+    allowlist: AllowlistStore | None = None,
+    interactive: bool = False,
+    confirm: Confirm | None = None,
 ) -> SessionStartResult:
-    """Scan ``skills_dirs``, quarantine Malicious Skills, and build the hook payload."""
+    """Scan ``skills_dirs``, quarantine Malicious, resolve Suspicious, and build the payload.
+
+    ``interactive``/``confirm`` are injected so the same hook code covers both branches of the
+    Suspicious posture: with a human present a warn-and-confirm allow lets a Skill load (and
+    persists its hash to the Allowlist); with no human present a Suspicious Skill is held off
+    disk (deny-and-hold), never silently allowed and never blocking on a prompt.
+    """
     enforcement = scan_and_quarantine(
         skills_dirs,
         engine=engine,
@@ -79,8 +101,23 @@ def run(
         quarantine=quarantine,
         posture=posture,
         allowlist=allowlist,
+        interactive=interactive,
+        confirm=confirm if confirm is not None else (lambda _decision: False),
     )
     return SessionStartResult(enforcement=enforcement, hook_output=_build_output(enforcement))
+
+
+def _prompt_confirm(decision: GateDecision) -> bool:  # pragma: no cover - interactive I/O
+    """Warn-and-confirm for one Suspicious Skill: show its Findings, read a yes/no.
+
+    The one place a prompt is allowed — testable code injects a stub ``Confirm`` instead.
+    """
+    sys.stderr.write(f"SkillGuard: Suspicious Skill at {decision.skill_path}\n")
+    for finding in decision.findings:
+        sys.stderr.write(f"  [{finding.vector}] {finding.location}: {finding.explanation}\n")
+    sys.stderr.write("Allow this Skill to load? [y/N] ")
+    sys.stderr.flush()
+    return sys.stdin.readline().strip().lower() in ("y", "yes")
 
 
 def main() -> None:
@@ -90,6 +127,11 @@ def main() -> None:
     with contextlib.suppress(json.JSONDecodeError, ValueError):
         json.load(sys.stdin)
 
+    # A hook subprocess is fed its input on a pipe (not a tty): treat that as "no human" so
+    # Suspicious degrades to deny-and-hold rather than hanging. A developer running it in a
+    # terminal gets the interactive warn-and-confirm.
+    interactive = sys.stdin.isatty()
+
     engine = DetectionEngine(judge=AnthropicJudge())
     result = run(
         default_skills_dirs(),
@@ -97,6 +139,8 @@ def main() -> None:
         store=VerdictStore(store_root()),
         quarantine=Quarantine(quarantine_root()),
         allowlist=Allowlist(store_root()),
+        interactive=interactive,
+        confirm=_prompt_confirm,
     )
     json.dump(result.hook_output, sys.stdout)
 
