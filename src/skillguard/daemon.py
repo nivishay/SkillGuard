@@ -31,7 +31,7 @@ from pathlib import Path
 from skillguard.allowlist import Allowlist
 from skillguard.engine import DetectionEngine
 from skillguard.engine.llm.anthropic_judge import AnthropicJudge
-from skillguard.gate.core import AllowlistPort, EnginePort, Posture
+from skillguard.gate.core import AllowlistStore, EnginePort, Posture
 from skillguard.gate.enforce import Enforcement, scan_and_quarantine
 from skillguard.paths import default_skills_dirs, quarantine_root, store_root
 from skillguard.quarantine import Quarantine
@@ -50,7 +50,7 @@ def scan_pass(
     store: VerdictStore,
     quarantine: Quarantine,
     posture: Posture | None = None,
-    allowlist: AllowlistPort | None = None,
+    allowlist: AllowlistStore | None = None,
 ) -> Enforcement:
     """Run one ahead-of-time scan pass over ``skills_dirs`` — the unit the watcher fires.
 
@@ -76,7 +76,7 @@ def _run_forever(  # pragma: no cover - the OS watch loop; never entered by the 
     engine: EnginePort,
     store: VerdictStore,
     quarantine: Quarantine,
-    allowlist: AllowlistPort | None,
+    allowlist: AllowlistStore | None,
     interval: float,
 ) -> None:
     """Poll the skills directories forever, running :func:`scan_pass` on each tick.
