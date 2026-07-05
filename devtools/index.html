@@ -1,0 +1,265 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>SkillGuard — Scan Flow Tester</title>
+<style>
+  :root {
+    --bg: #f7f8fa; --panel: #ffffff; --border: #e3e6eb; --text: #1c2024;
+    --muted: #6b7280; --accent: #4f46e5;
+    --idle: #c4c8cf; --run: #4f46e5; --done: #16a34a; --err: #dc2626;
+    --clean: #16a34a; --clean-bg: #e9f7ef;
+    --susp: #b45309; --susp-bg: #fdf3e3;
+    --mal: #dc2626; --mal-bg: #fdeaea;
+    --mono: ui-monospace, "SF Mono", "Cascadia Code", Menlo, Consolas, monospace;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #0f1115; --panel: #171a21; --border: #262b34; --text: #e6e9ef;
+      --muted: #9aa3b2; --accent: #8b83ff;
+      --idle: #3a404b; --run: #8b83ff; --done: #34d399; --err: #f87171;
+      --clean: #34d399; --clean-bg: #10241b;
+      --susp: #fbbf24; --susp-bg: #2a2113;
+      --mal: #f87171; --mal-bg: #2a1516;
+    }
+  }
+  :root[data-theme="light"] {
+    --bg: #f7f8fa; --panel: #ffffff; --border: #e3e6eb; --text: #1c2024;
+    --muted: #6b7280; --idle: #c4c8cf; --run: #4f46e5; --done: #16a34a; --err: #dc2626;
+    --clean: #16a34a; --clean-bg: #e9f7ef; --susp: #b45309; --susp-bg: #fdf3e3;
+    --mal: #dc2626; --mal-bg: #fdeaea; --accent: #4f46e5;
+  }
+  :root[data-theme="dark"] {
+    --bg: #0f1115; --panel: #171a21; --border: #262b34; --text: #e6e9ef;
+    --muted: #9aa3b2; --idle: #3a404b; --run: #8b83ff; --done: #34d399; --err: #f87171;
+    --clean: #34d399; --clean-bg: #10241b; --susp: #fbbf24; --susp-bg: #2a2113;
+    --mal: #f87171; --mal-bg: #2a1516; --accent: #8b83ff;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--bg); color: var(--text);
+    font: 15px/1.5 system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+  }
+  .wrap { max-width: 860px; margin: 0 auto; padding: 28px 20px 60px; }
+  header { display: flex; align-items: center; gap: 12px; margin-bottom: 6px; }
+  h1 { font-size: 20px; margin: 0; letter-spacing: -0.01em; }
+  .shield { font-size: 22px; }
+  .sub { color: var(--muted); font-size: 13px; margin: 0 0 22px; }
+  .controls {
+    background: var(--panel); border: 1px solid var(--border); border-radius: 12px;
+    padding: 16px; display: flex; flex-wrap: wrap; gap: 10px; align-items: center;
+    margin-bottom: 22px;
+  }
+  select, input[type=text] {
+    background: var(--bg); color: var(--text); border: 1px solid var(--border);
+    border-radius: 8px; padding: 9px 11px; font-size: 14px;
+  }
+  select { flex: 1 1 240px; }
+  input[type=text] { flex: 2 1 260px; font-family: var(--mono); font-size: 13px; }
+  button {
+    background: var(--accent); color: #fff; border: 0; border-radius: 8px;
+    padding: 9px 18px; font-size: 14px; font-weight: 600; cursor: pointer;
+  }
+  button:disabled { opacity: .55; cursor: default; }
+  .opt { display: flex; align-items: center; gap: 6px; color: var(--muted); font-size: 13px; }
+
+  .flow { display: flex; flex-direction: column; gap: 0; }
+  .stage {
+    position: relative; background: var(--panel); border: 1px solid var(--border);
+    border-radius: 12px; padding: 14px 16px; margin-bottom: 14px;
+    opacity: .55; transition: opacity .25s, border-color .25s;
+  }
+  .stage.active, .stage.done, .stage.error { opacity: 1; }
+  .stage.active { border-color: var(--run); }
+  .stage.error { border-color: var(--err); }
+  .stage:not(:last-child)::after {
+    content: ""; position: absolute; left: 27px; bottom: -14px; height: 14px;
+    width: 2px; background: var(--border);
+  }
+  .stage-head { display: flex; align-items: center; gap: 11px; }
+  .dot {
+    width: 12px; height: 12px; border-radius: 50%; background: var(--idle); flex: none;
+    box-shadow: 0 0 0 4px transparent;
+  }
+  .stage.active .dot { background: var(--run); animation: pulse 1.1s infinite; }
+  .stage.done .dot { background: var(--done); }
+  .stage.error .dot { background: var(--err); }
+  @keyframes pulse {
+    0% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--run) 55%, transparent); }
+    70% { box-shadow: 0 0 0 7px transparent; }
+    100% { box-shadow: 0 0 0 0 transparent; }
+  }
+  .stage-title { font-weight: 600; font-size: 15px; }
+  .stage-meta { margin-left: auto; color: var(--muted); font-size: 12.5px; font-family: var(--mono); }
+  .stage-body { margin: 10px 0 0 23px; font-size: 13.5px; color: var(--muted); }
+  .stage-body:empty { display: none; }
+  .files { font-family: var(--mono); font-size: 12.5px; }
+
+  .finding {
+    display: block; margin: 7px 0; padding: 8px 10px; border-radius: 8px;
+    background: var(--bg); border: 1px solid var(--border);
+  }
+  .finding .tag {
+    display: inline-block; font-size: 11px; font-weight: 700; padding: 1px 7px;
+    border-radius: 999px; margin-right: 7px; background: var(--susp-bg); color: var(--susp);
+  }
+  .finding .loc { font-family: var(--mono); font-size: 12px; color: var(--text); }
+  .finding .exp { display: block; margin-top: 3px; color: var(--muted); font-size: 12.5px; }
+  .none { font-style: italic; }
+
+  .verdict { text-align: center; padding: 22px; }
+  .verdict .tier {
+    font-size: 30px; font-weight: 800; letter-spacing: -0.02em; padding: 6px 20px;
+    border-radius: 12px; display: inline-block;
+  }
+  .tier.clean { color: var(--clean); background: var(--clean-bg); }
+  .tier.suspicious { color: var(--susp); background: var(--susp-bg); }
+  .tier.malicious { color: var(--mal); background: var(--mal-bg); }
+  .verdict .exit { margin-top: 8px; color: var(--muted); font-size: 12.5px; font-family: var(--mono); }
+
+  details.log { margin-top: 22px; }
+  details.log summary { cursor: pointer; color: var(--muted); font-size: 13px; }
+  pre.log {
+    background: var(--panel); border: 1px solid var(--border); border-radius: 10px;
+    padding: 12px; overflow-x: auto; font-family: var(--mono); font-size: 11.5px;
+    color: var(--muted); max-height: 240px;
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <span class="shield">🛡️</span>
+    <h1>SkillGuard — Scan Flow Tester</h1>
+  </header>
+  <p class="sub" id="sub">Point it at a Skill folder and watch it flow through the Detection Engine.</p>
+
+  <div class="controls">
+    <select id="corpus"><option value="">— pick a corpus Skill —</option></select>
+    <input type="text" id="folder" placeholder="…or paste any Skill folder path" />
+    <label class="opt"><input type="checkbox" id="offline" /> offline (Static Pass only)</label>
+    <button id="scan">Scan</button>
+  </div>
+
+  <div class="flow">
+    <div class="stage" id="s-loader">
+      <div class="stage-head"><span class="dot"></span><span class="stage-title">Load Skill</span>
+        <span class="stage-meta" id="m-loader"></span></div>
+      <div class="stage-body" id="b-loader"></div>
+    </div>
+    <div class="stage" id="s-static">
+      <div class="stage-head"><span class="dot"></span><span class="stage-title">Static Pass</span>
+        <span class="stage-meta" id="m-static"></span></div>
+      <div class="stage-body" id="b-static"></div>
+    </div>
+    <div class="stage" id="s-llm">
+      <div class="stage-head"><span class="dot"></span><span class="stage-title">LLM Judgment</span>
+        <span class="stage-meta" id="m-llm"></span></div>
+      <div class="stage-body" id="b-llm"></div>
+    </div>
+    <div class="stage" id="s-verdict">
+      <div class="stage-head"><span class="dot"></span><span class="stage-title">Verdict</span>
+        <span class="stage-meta" id="m-verdict"></span></div>
+      <div class="stage-body" id="b-verdict"></div>
+    </div>
+  </div>
+
+  <details class="log">
+    <summary>Live event log</summary>
+    <pre class="log" id="log"></pre>
+  </details>
+</div>
+
+<script>
+  const $ = (id) => document.getElementById(id);
+  const stages = ["loader", "static", "llm", "verdict"];
+
+  fetch("/skills").then(r => r.json()).then(list => {
+    const sel = $("corpus");
+    for (const s of list) {
+      const o = document.createElement("option");
+      o.value = s.path; o.textContent = s.label; sel.appendChild(o);
+    }
+  }).catch(() => {});
+
+  $("corpus").addEventListener("change", (e) => { if (e.target.value) $("folder").value = e.target.value; });
+
+  function reset() {
+    for (const s of stages) {
+      const el = $("s-" + s);
+      el.className = "stage";
+      $("b-" + s).innerHTML = "";
+      $("m-" + s).textContent = "";
+    }
+    $("log").textContent = "";
+  }
+  const setState = (s, cls) => { $("s-" + s).classList.add(cls); };
+  const findingHTML = (f) => {
+    const loc = f.line != null ? `${f.file}:${f.line}` : f.file;
+    return `<span class="finding"><span class="tag">${f.vector}</span>` +
+           `<span class="loc">${loc}</span><span class="exp">${f.explanation}</span></span>`;
+  };
+
+  function handle(ev) {
+    $("log").textContent += JSON.stringify(ev) + "\n";
+    $("log").scrollTop = $("log").scrollHeight;
+    const st = ev.stage;
+    if (st === "loader" && ev.status === "start") setState("loader", "active");
+    else if (st === "loader" && ev.status === "done") {
+      $("s-loader").className = "stage done"; $("m-loader").textContent = ev.elapsed + "s";
+      $("b-loader").innerHTML = `<span class="files">${ev.files.length} file(s): ${ev.files.join(", ")}</span>`;
+    }
+    else if (st === "static" && ev.status === "start") setState("static", "active");
+    else if (st === "static" && ev.status === "finding") $("b-static").innerHTML += findingHTML(ev.finding);
+    else if (st === "static" && ev.status === "done") {
+      $("s-static").className = "stage done"; $("m-static").textContent = ev.elapsed + "s";
+      if (ev.count === 0) $("b-static").innerHTML = `<span class="none">no static signals</span>`;
+    }
+    else if (st === "llm" && ev.status === "start") {
+      setState("llm", "active");
+      $("b-llm").innerHTML = ev.offline ? `<span class="none">stubbed (offline)</span>` : `analyzing…`;
+    }
+    else if (st === "llm" && ev.status === "done") {
+      $("s-llm").className = "stage done"; $("m-llm").textContent = ev.elapsed + "s";
+      let h = `LLM tier: <b>${ev.tier}</b>`;
+      if (ev.explanation) h += `<div style="margin-top:6px">${ev.explanation}</div>`;
+      for (const f of ev.findings) h += findingHTML(f);
+      $("b-llm").innerHTML = h;
+    }
+    else if (st === "verdict" && ev.status === "done") {
+      $("s-verdict").className = "stage done"; $("m-verdict").textContent = "total " + ev.elapsed + "s";
+      const tier = ev.tier.toLowerCase();
+      const exit = tier === "clean" ? 0 : 1;
+      let h = `<div class="verdict"><span class="tier ${tier}">${ev.tier}</span>` +
+              `<div class="exit">exit code ${exit}</div>`;
+      if (ev.findings.length) { h += `<div style="text-align:left;margin-top:14px">`;
+        for (const f of ev.findings) h += findingHTML(f); h += `</div>`; }
+      h += `</div>`;
+      $("b-verdict").innerHTML = h;
+    }
+    else if (st === "error") {
+      const active = stages.find(s => $("s-" + s).classList.contains("active")) || "loader";
+      $("s-" + active).className = "stage error";
+      $("b-" + active).innerHTML = `<span style="color:var(--err)">${ev.message}</span>`;
+      finish();
+    }
+    else if (st === "end") finish();
+  }
+
+  let es = null;
+  function finish() { if (es) { es.close(); es = null; } $("scan").disabled = false; $("scan").textContent = "Scan"; }
+
+  $("scan").addEventListener("click", () => {
+    const folder = $("folder").value.trim();
+    if (!folder) { $("folder").focus(); return; }
+    reset();
+    $("scan").disabled = true; $("scan").textContent = "Scanning…";
+    const mode = $("offline").checked ? "offline" : "live";
+    es = new EventSource(`/scan?folder=${encodeURIComponent(folder)}&mode=${mode}`);
+    es.onmessage = (m) => handle(JSON.parse(m.data));
+    es.onerror = () => { handle({ stage: "error", message: "connection lost" }); };
+  });
+</script>
+</body>
+</html>
