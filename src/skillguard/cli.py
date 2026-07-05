@@ -11,6 +11,7 @@ from typing import Annotated
 
 import typer
 
+from skillguard import daemon as daemon_mod
 from skillguard.allowlist import Allowlist
 from skillguard.engine import DetectionEngine
 from skillguard.engine.llm.anthropic_judge import AnthropicJudge, LLMJudgeError
@@ -127,6 +128,40 @@ def status() -> None:
         quarantined=quarantined,
         allowlisted=allowlist.list(),
     )
+
+
+@app.command()
+def daemon(
+    once: Annotated[
+        bool,
+        typer.Option(
+            "--once", help="Run a single ahead-of-time scan pass and exit (cron/testing)."
+        ),
+    ] = False,
+) -> None:
+    """Run the resident watcher that scans Skills ahead of time so SessionStart stays fast.
+
+    Without ``--once`` this runs in the foreground and polls the skills directories until you
+    stop it (Ctrl+C, or close the terminal / Stop-Process on Windows). ``--once`` performs a
+    single pass — quarantining any Malicious Skill and caching every Verdict — then exits.
+    """
+    if once:
+        enforcement = daemon_mod.main(once=True)
+        moved = len(enforcement.quarantined) if enforcement is not None else 0
+        typer.secho(
+            f"Scan pass complete: quarantined {moved} Malicious Skill(s).",
+            fg=typer.colors.GREEN,
+        )
+        return
+
+    typer.secho(
+        "SkillGuard daemon watching your Skills. Press Ctrl+C to stop.",
+        fg=typer.colors.GREEN,
+    )
+    try:
+        daemon_mod.main(once=False)
+    except KeyboardInterrupt:  # pragma: no cover - interactive stop
+        typer.secho("Daemon stopped.", fg=typer.colors.YELLOW)
 
 
 @app.command("hook", hidden=True)

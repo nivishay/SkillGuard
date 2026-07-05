@@ -1,0 +1,418 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SkillGuard — Architecture Overview</title>
+  <style>
+    :root {
+      --data: #4299e1;      /* blue   — data / loading */
+      --proc: #ed8936;      /* orange — static / deterministic */
+      --ai:   #9f7aea;      /* purple — LLM / semantic */
+      --ok:   #48bb78;      /* green  — success / clean */
+      --warn: #ecc94b;      /* yellow — suspicious */
+      --bad:  #f56565;      /* red    — malicious */
+      --ink:  #1a202c;
+      --muted:#4a5568;
+      --line: #cbd5e0;
+      --bg:   #f7fafc;
+      --card: #ffffff;
+    }
+    * { box-sizing: border-box; }
+    body {
+      font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+      max-width: 1200px; margin: 0 auto; padding: 0 20px 80px;
+      color: var(--ink); background: var(--bg); line-height: 1.55;
+    }
+    h1 {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white; padding: 36px 32px; margin: 0 -20px 8px;
+      border-radius: 0 0 16px 16px; font-size: 2rem; letter-spacing: -0.02em;
+    }
+    h1 .sub { display: block; font-size: 1rem; font-weight: 400; opacity: .9; margin-top: 8px; }
+    h2 {
+      font-size: 1.35rem; margin: 48px 0 4px; padding-bottom: 8px;
+      border-bottom: 2px solid var(--line);
+    }
+    h2 .num {
+      display: inline-block; width: 30px; height: 30px; line-height: 30px;
+      text-align: center; background: #667eea; color: white; border-radius: 8px;
+      font-size: .95rem; margin-right: 10px; vertical-align: middle;
+    }
+    .lede { color: var(--muted); margin: 6px 0 20px; }
+    .section { margin: 24px 0; }
+    svg { max-width: 100%; height: auto; display: block; margin: 8px auto; }
+    .fig-wrap { overflow-x: auto; background: var(--card); border: 1px solid var(--line);
+      border-radius: 12px; padding: 16px; margin: 16px 0; }
+    .grid { display: grid; gap: 16px; }
+    .cols-2 { grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); }
+    .cols-3 { grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); }
+    .cols-4 { grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); }
+    .card {
+      background: var(--card); border: 1px solid var(--line); border-radius: 12px;
+      padding: 18px 20px; box-shadow: 0 1px 3px rgba(0,0,0,.04);
+    }
+    .card h3 { margin: 0 0 8px; font-size: 1.05rem; }
+    .card p { margin: 0; color: var(--muted); font-size: .92rem; }
+    .card.accent-data  { border-top: 4px solid var(--data); }
+    .card.accent-proc  { border-top: 4px solid var(--proc); }
+    .card.accent-ai    { border-top: 4px solid var(--ai); }
+    .card.accent-ok    { border-top: 4px solid var(--ok); }
+    .pill {
+      display: inline-block; font-size: .72rem; font-weight: 600; letter-spacing: .03em;
+      text-transform: uppercase; padding: 3px 9px; border-radius: 999px; color: white;
+      margin-bottom: 8px;
+    }
+    .pill.data { background: var(--data); } .pill.proc { background: var(--proc); }
+    .pill.ai { background: var(--ai); } .pill.ok { background: var(--ok); }
+    code, .mono { font-family: "SF Mono", "Cascadia Code", Consolas, monospace; font-size: .86em; }
+    .codebox {
+      background: #1a202c; color: #e2e8f0; border-radius: 10px; padding: 16px 18px;
+      overflow-x: auto; font-family: "SF Mono", Consolas, monospace; font-size: .84rem;
+      line-height: 1.6; margin: 12px 0;
+    }
+    .codebox .c { color: #718096; }  .codebox .g { color: #68d391; }
+    .codebox .y { color: #f6e05e; }  .codebox .r { color: #fc8181; }
+    ul.tight { margin: 8px 0 0; padding-left: 20px; }
+    ul.tight li { margin: 4px 0; color: var(--muted); font-size: .92rem; }
+    ul.tight li b { color: var(--ink); }
+    table { width: 100%; border-collapse: collapse; margin: 12px 0; font-size: .9rem; }
+    th, td { text-align: left; padding: 10px 12px; border-bottom: 1px solid var(--line); }
+    th { background: #edf2f7; font-size: .8rem; text-transform: uppercase; letter-spacing: .03em; color: var(--muted); }
+    td code { background: #edf2f7; padding: 2px 6px; border-radius: 5px; }
+    .tier-row td:first-child { font-weight: 600; }
+    .badge { display:inline-block; padding:2px 8px; border-radius:6px; font-size:.78rem; font-weight:600; color:#fff; }
+    .badge.clean { background: var(--ok); } .badge.susp { background: #b7791f; } .badge.mal { background: var(--bad); }
+    .legend { display: flex; gap: 18px; flex-wrap: wrap; margin: 8px 0 0; font-size: .82rem; color: var(--muted); }
+    .legend span { display: inline-flex; align-items: center; gap: 6px; }
+    .dot { width: 12px; height: 12px; border-radius: 3px; display: inline-block; }
+    .note { background: #fffaf0; border-left: 4px solid var(--proc); padding: 12px 16px;
+      border-radius: 0 8px 8px 0; margin: 16px 0; font-size: .9rem; color: #744210; }
+    .note b { color: #7b341e; }
+    footer { margin-top: 60px; padding-top: 20px; border-top: 1px solid var(--line);
+      color: var(--muted); font-size: .82rem; }
+  </style>
+</head>
+<body>
+  <h1>SkillGuard — Architecture Overview
+    <span class="sub">Detect malicious AI-agent Skills before your coding agent trusts and runs them · <code>v0.1.0</code> · Detection-Engine-only MVP</span>
+  </h1>
+
+  <!-- ══════════════════════ 1. BUSINESS CONTEXT ══════════════════════ -->
+  <h2><span class="num">1</span>Business Context</h2>
+  <p class="lede">Developers pull <b>Skills</b> (SKILL.md instructions + optionally bundled scripts) from GitHub and the web, then let their coding agent load and act on them — with no checkpoint. Because a Skill is <i>instructions the agent will follow</i> and <i>code the agent may run</i>, a malicious one can quietly read secrets, exfiltrate data, or run destructive commands.</p>
+
+  <div class="grid cols-4 section">
+    <div class="card accent-data">
+      <span class="pill data">Objective</span>
+      <h3>Prove detection works</h3>
+      <p>Distinguish malicious Skills from safe ones with a <b>low false-positive rate</b> — the one genuinely unproven part of the design.</p>
+    </div>
+    <div class="card accent-proc">
+      <span class="pill proc">Users</span>
+      <h3>Developers &amp; CI</h3>
+      <p>Anyone about to trust a cloned Skill. Scriptable via exit codes for local checks and pipelines.</p>
+    </div>
+    <div class="card accent-ai">
+      <span class="pill ai">Value</span>
+      <h3>Explained verdict</h3>
+      <p>Not just a red light: a plain-language reason naming <b>which</b> Threat Vector fired and <b>where</b>.</p>
+    </div>
+    <div class="card accent-ok">
+      <span class="pill ok">Metrics</span>
+      <h3>Accuracy over time</h3>
+      <p>Detection rate, false-positive rate, per-scan latency, and vector attribution — tracked by the eval harness.</p>
+    </div>
+  </div>
+
+  <div class="note">
+    <b>Scope of this release:</b> the Detection Engine <i>only</i>. It <b>reports</b> a Verdict; it does <b>not</b> gate installs. Out of scope: the install gate, Canonical Bundle Hash cache &amp; shared verdict DB, provenance scoring, sandboxed execution, and the Chrome/CI surfaces.
+  </div>
+
+  <!-- ══════════════════════ 2. DATA FLOW ══════════════════════ -->
+  <h2><span class="num">2</span>Data Flow</h2>
+  <p class="lede">A folder on disk becomes a normalized in-memory Skill, is analyzed by two layers, and collapses into a single Verdict with evidence and an exit code.</p>
+
+  <div class="fig-wrap">
+    <svg viewBox="0 0 940 300" role="img" aria-label="Data flow from folder to verdict">
+      <defs>
+        <marker id="arrow" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto" markerUnits="strokeWidth">
+          <path d="M0,0 L8,3 L0,6 Z" fill="#718096"/>
+        </marker>
+      </defs>
+
+      <!-- Source -->
+      <rect x="20" y="110" width="150" height="80" rx="10" fill="#4299e1"/>
+      <text x="95" y="142" text-anchor="middle" fill="#fff" font-size="14" font-weight="600">Skill folder</text>
+      <text x="95" y="162" text-anchor="middle" fill="#e6f0fb" font-size="11">SKILL.md + scripts</text>
+      <text x="95" y="178" text-anchor="middle" fill="#e6f0fb" font-size="11">on disk</text>
+
+      <!-- Loader -->
+      <rect x="230" y="110" width="150" height="80" rx="10" fill="#3182ce"/>
+      <text x="305" y="138" text-anchor="middle" fill="#fff" font-size="14" font-weight="600">Skill Loader</text>
+      <text x="305" y="157" text-anchor="middle" fill="#dbeafe" font-size="10.5">normalize: LF endings,</text>
+      <text x="305" y="172" text-anchor="middle" fill="#dbeafe" font-size="10.5">drop .git / OS junk</text>
+
+      <!-- Engine box -->
+      <rect x="440" y="55" width="230" height="190" rx="12" fill="#fff" stroke="#cbd5e0" stroke-width="1.5" stroke-dasharray="5 4"/>
+      <text x="555" y="78" text-anchor="middle" fill="#4a5568" font-size="12" font-weight="700">DETECTION ENGINE</text>
+
+      <rect x="460" y="92" width="190" height="52" rx="9" fill="#ed8936"/>
+      <text x="555" y="114" text-anchor="middle" fill="#fff" font-size="12.5" font-weight="600">Static Pass</text>
+      <text x="555" y="131" text-anchor="middle" fill="#fff4e8" font-size="10">pure fn · regex signals</text>
+
+      <rect x="460" y="152" width="190" height="52" rx="9" fill="#9f7aea"/>
+      <text x="555" y="174" text-anchor="middle" fill="#fff" font-size="12.5" font-weight="600">LLM Judgment</text>
+      <text x="555" y="191" text-anchor="middle" fill="#f3ecfd" font-size="10">Claude · semantic intent</text>
+
+      <text x="555" y="228" text-anchor="middle" fill="#4a5568" font-size="10.5" font-style="italic">combine_verdict · static floor</text>
+
+      <!-- Verdict -->
+      <rect x="730" y="110" width="150" height="80" rx="10" fill="#48bb78"/>
+      <text x="805" y="138" text-anchor="middle" fill="#fff" font-size="14" font-weight="600">Verdict</text>
+      <text x="805" y="157" text-anchor="middle" fill="#e6f6ec" font-size="10.5">tier + findings</text>
+      <text x="805" y="172" text-anchor="middle" fill="#e6f6ec" font-size="10.5">+ exit code</text>
+
+      <!-- arrows -->
+      <path d="M170,150 L228,150" stroke="#718096" stroke-width="2" marker-end="url(#arrow)"/>
+      <path d="M380,150 L438,150" stroke="#718096" stroke-width="2" marker-end="url(#arrow)"/>
+      <path d="M670,150 L728,150" stroke="#718096" stroke-width="2" marker-end="url(#arrow)"/>
+
+      <text x="199" y="142" text-anchor="middle" fill="#718096" font-size="10">folder</text>
+      <text x="409" y="142" text-anchor="middle" fill="#718096" font-size="10">Skill</text>
+    </svg>
+    <div class="legend">
+      <span><span class="dot" style="background:var(--data)"></span> Data / load</span>
+      <span><span class="dot" style="background:var(--proc)"></span> Deterministic</span>
+      <span><span class="dot" style="background:var(--ai)"></span> LLM / semantic</span>
+      <span><span class="dot" style="background:var(--ok)"></span> Output</span>
+    </div>
+  </div>
+
+  <!-- ══════════════════════ 3. PROCESSING PIPELINE ══════════════════════ -->
+  <h2><span class="num">3</span>Processing Pipeline</h2>
+  <p class="lede">The two layers run over the <i>same</i> untrusted Skill, then <code>combine_verdict</code> reconciles them under the <b>static floor</b> rule (ADR&nbsp;0002): the LLM may <b>raise</b> severity but can never single-handedly <b>lower</b> a statically-flagged Skill to Clean.</p>
+
+  <div class="fig-wrap">
+    <svg viewBox="0 0 940 420" role="img" aria-label="Processing pipeline and verdict combination">
+      <defs>
+        <marker id="arrow2" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto" markerUnits="strokeWidth">
+          <path d="M0,0 L8,3 L0,6 Z" fill="#718096"/>
+        </marker>
+      </defs>
+
+      <!-- Skill input -->
+      <rect x="30" y="175" width="120" height="70" rx="10" fill="#4299e1"/>
+      <text x="90" y="205" text-anchor="middle" fill="#fff" font-size="13" font-weight="600">Normalized</text>
+      <text x="90" y="223" text-anchor="middle" fill="#fff" font-size="13" font-weight="600">Skill</text>
+
+      <!-- Static pass detectors -->
+      <rect x="210" y="40" width="300" height="150" rx="12" fill="#fffaf3" stroke="#ed8936" stroke-width="1.5"/>
+      <text x="360" y="63" text-anchor="middle" fill="#c05621" font-size="12" font-weight="700">STATIC PASS · pure function</text>
+      <g font-size="10.5" fill="#7b341e">
+        <rect x="228" y="76" width="264" height="24" rx="6" fill="#fbe6cf"/><text x="238" y="92" fill="#7b341e">▸ Prompt Injection — secrets, exfil, covert</text>
+        <rect x="228" y="104" width="264" height="24" rx="6" fill="#fbe6cf"/><text x="238" y="120" fill="#7b341e">▸ Malicious Bundled Code — curl|bash, rm -rf</text>
+        <rect x="228" y="132" width="264" height="24" rx="6" fill="#fbe6cf"/><text x="238" y="148" fill="#7b341e">▸ Second-Stage — base64 -d | sh, fetch-run</text>
+        <rect x="228" y="160" width="264" height="24" rx="6" fill="#fbe6cf"/><text x="238" y="176" fill="#7b341e">▸ Analyzer Manipulation — "output CLEAN"</text>
+      </g>
+
+      <!-- LLM judgment -->
+      <rect x="210" y="235" width="300" height="150" rx="12" fill="#f9f5ff" stroke="#9f7aea" stroke-width="1.5"/>
+      <text x="360" y="258" text-anchor="middle" fill="#6b46c1" font-size="12" font-weight="700">LLM JUDGMENT · injectable port</text>
+      <text x="360" y="284" text-anchor="middle" fill="#553c9a" font-size="11">Skill wrapped as UNTRUSTED &lt;skill&gt; data</text>
+      <text x="360" y="304" text-anchor="middle" fill="#553c9a" font-size="11">Claude model reads static findings too</text>
+      <text x="360" y="324" text-anchor="middle" fill="#553c9a" font-size="11">Catches novel / disguised intent</text>
+      <text x="360" y="352" text-anchor="middle" fill="#6b46c1" font-size="10.5" font-style="italic">→ tier · findings · explanation (JSON)</text>
+      <text x="360" y="370" text-anchor="middle" fill="#805ad5" font-size="9.5">stubbed in tests · AnthropicJudge in prod</text>
+
+      <!-- combine -->
+      <rect x="580" y="140" width="150" height="140" rx="12" fill="#2d3748"/>
+      <text x="655" y="170" text-anchor="middle" fill="#fff" font-size="12.5" font-weight="700">combine_</text>
+      <text x="655" y="187" text-anchor="middle" fill="#fff" font-size="12.5" font-weight="700">verdict()</text>
+      <text x="655" y="214" text-anchor="middle" fill="#cbd5e0" font-size="9.5">floor = Suspicious</text>
+      <text x="655" y="228" text-anchor="middle" fill="#cbd5e0" font-size="9.5">if static findings</text>
+      <text x="655" y="250" text-anchor="middle" fill="#f6e05e" font-size="10.5" font-weight="600">tier = max(</text>
+      <text x="655" y="264" text-anchor="middle" fill="#f6e05e" font-size="10.5" font-weight="600">llm, floor)</text>
+
+      <!-- verdict tiers -->
+      <rect x="795" y="120" width="120" height="40" rx="8" fill="#48bb78"/>
+      <text x="855" y="145" text-anchor="middle" fill="#fff" font-size="13" font-weight="600">Clean</text>
+      <rect x="795" y="185" width="120" height="40" rx="8" fill="#d69e2e"/>
+      <text x="855" y="210" text-anchor="middle" fill="#fff" font-size="13" font-weight="600">Suspicious</text>
+      <rect x="795" y="250" width="120" height="40" rx="8" fill="#f56565"/>
+      <text x="855" y="275" text-anchor="middle" fill="#fff" font-size="13" font-weight="600">Malicious</text>
+
+      <!-- arrows -->
+      <path d="M150,205 L206,130 " stroke="#ed8936" stroke-width="2" marker-end="url(#arrow2)"/>
+      <path d="M150,215 L206,300 " stroke="#9f7aea" stroke-width="2" marker-end="url(#arrow2)"/>
+      <path d="M510,115 C545,120 555,150 578,175" stroke="#ed8936" stroke-width="2" fill="none" marker-end="url(#arrow2)"/>
+      <path d="M510,310 C545,300 555,260 578,245" stroke="#9f7aea" stroke-width="2" fill="none" marker-end="url(#arrow2)"/>
+      <path d="M730,210 L793,175" stroke="#718096" stroke-width="1.6" fill="none" marker-end="url(#arrow2)"/>
+      <path d="M730,210 L793,205" stroke="#718096" stroke-width="1.6" fill="none" marker-end="url(#arrow2)"/>
+      <path d="M730,210 L793,255" stroke="#718096" stroke-width="1.6" fill="none" marker-end="url(#arrow2)"/>
+    </svg>
+  </div>
+
+  <div class="grid cols-3 section">
+    <div class="card">
+      <h3>No static findings + LLM Clean</h3>
+      <p>Floor is Clean → <span class="badge clean">Clean</span>. A purely LLM-surfaced concern can still reach Suspicious/Malicious on its own.</p>
+    </div>
+    <div class="card">
+      <h3>Static findings + LLM Malicious</h3>
+      <p>The LLM raised it → <span class="badge mal">Malicious</span>. Deterministic evidence is listed first, LLM evidence appended.</p>
+    </div>
+    <div class="card">
+      <h3>Static findings + LLM Clean</h3>
+      <p>Floor holds → <span class="badge susp">Suspicious</span>. A Skill that tried to steer the LLM to "Clean" still surfaces for human review.</p>
+    </div>
+  </div>
+
+  <!-- ══════════════════════ 4. SYSTEM ARCHITECTURE ══════════════════════ -->
+  <h2><span class="num">4</span>System Architecture</h2>
+  <p class="lede">Layered, dependency-light. The domain <code>models</code> are stdlib-only frozen dataclasses that every layer speaks; the LLM sits behind a <code>Protocol</code> port so the deterministic test suite injects a stub with no network.</p>
+
+  <div class="fig-wrap">
+    <svg viewBox="0 0 920 430" role="img" aria-label="Layered system architecture">
+      <!-- Entry layer -->
+      <rect x="30" y="30" width="860" height="70" rx="10" fill="#ebf8ff" stroke="#4299e1" stroke-width="1.5"/>
+      <text x="50" y="55" fill="#2b6cb0" font-size="12" font-weight="700">ENTRY LAYER</text>
+      <rect x="55" y="60" width="220" height="30" rx="6" fill="#4299e1"/><text x="165" y="80" text-anchor="middle" fill="#fff" font-size="12">cli.py — skillguard scan</text>
+      <rect x="290" y="60" width="220" height="30" rx="6" fill="#63b3ed"/><text x="400" y="80" text-anchor="middle" fill="#fff" font-size="12">rendering.py — verdict + exit code</text>
+      <rect x="525" y="60" width="150" height="30" rx="6" fill="#90cdf4"/><text x="600" y="80" text-anchor="middle" fill="#1a365d" font-size="11.5">__main__.py</text>
+      <rect x="690" y="60" width="180" height="30" rx="6" fill="#90cdf4"/><text x="780" y="80" text-anchor="middle" fill="#1a365d" font-size="11">devtools/tester.py</text>
+
+      <!-- Processing layer -->
+      <rect x="30" y="120" width="860" height="110" rx="10" fill="#fffaf0" stroke="#ed8936" stroke-width="1.5"/>
+      <text x="50" y="145" fill="#c05621" font-size="12" font-weight="700">DETECTION ENGINE</text>
+      <rect x="55" y="155" width="250" height="60" rx="8" fill="#2d3748"/>
+      <text x="180" y="180" text-anchor="middle" fill="#fff" font-size="12.5" font-weight="600">engine/__init__.py</text>
+      <text x="180" y="199" text-anchor="middle" fill="#cbd5e0" font-size="10">analyze() · combine_verdict()</text>
+      <rect x="325" y="155" width="250" height="60" rx="8" fill="#ed8936"/>
+      <text x="450" y="180" text-anchor="middle" fill="#fff" font-size="12.5" font-weight="600">engine/static_pass.py</text>
+      <text x="450" y="199" text-anchor="middle" fill="#fff4e8" font-size="10">pure fn · 4 detectors · regex</text>
+      <rect x="595" y="155" width="270" height="60" rx="8" fill="#9f7aea"/>
+      <text x="730" y="180" text-anchor="middle" fill="#fff" font-size="12.5" font-weight="600">engine/llm/</text>
+      <text x="730" y="199" text-anchor="middle" fill="#f3ecfd" font-size="10">port.py (Protocol) · anthropic_judge.py</text>
+
+      <!-- Domain / data layer -->
+      <rect x="30" y="250" width="860" height="70" rx="10" fill="#f0fff4" stroke="#48bb78" stroke-width="1.5"/>
+      <text x="50" y="275" fill="#276749" font-size="12" font-weight="700">DOMAIN &amp; DATA</text>
+      <rect x="55" y="280" width="360" height="30" rx="6" fill="#48bb78"/><text x="235" y="300" text-anchor="middle" fill="#fff" font-size="11.5">models.py — Skill · Verdict · Finding · Tier · ThreatVector</text>
+      <rect x="430" y="280" width="230" height="30" rx="6" fill="#68d391"/><text x="545" y="300" text-anchor="middle" fill="#1a3d2b" font-size="11.5">loader.py — folder → Skill</text>
+      <rect x="675" y="280" width="190" height="30" rx="6" fill="#9ae6b4"/><text x="770" y="300" text-anchor="middle" fill="#1a3d2b" font-size="11">normalization rules</text>
+
+      <!-- External + quality -->
+      <rect x="30" y="340" width="420" height="70" rx="10" fill="#faf5ff" stroke="#9f7aea" stroke-width="1.5"/>
+      <text x="50" y="365" fill="#6b46c1" font-size="12" font-weight="700">EXTERNAL</text>
+      <rect x="55" y="372" width="180" height="30" rx="6" fill="#805ad5"/><text x="145" y="392" text-anchor="middle" fill="#fff" font-size="11.5">Anthropic Claude API</text>
+      <rect x="245" y="372" width="195" height="30" rx="6" fill="#b794f4"/><text x="342" y="392" text-anchor="middle" fill="#2d1b4e" font-size="11">ANTHROPIC_API_KEY</text>
+
+      <rect x="470" y="340" width="420" height="70" rx="10" fill="#f7fafc" stroke="#a0aec0" stroke-width="1.5"/>
+      <text x="490" y="365" fill="#4a5568" font-size="12" font-weight="700">QUALITY / MEASUREMENT</text>
+      <rect x="495" y="372" width="120" height="30" rx="6" fill="#718096"/><text x="555" y="392" text-anchor="middle" fill="#fff" font-size="11">tests/ (pytest)</text>
+      <rect x="625" y="372" width="130" height="30" rx="6" fill="#718096"/><text x="690" y="392" text-anchor="middle" fill="#fff" font-size="11">evals/ harness</text>
+      <rect x="765" y="372" width="105" height="30" rx="6" fill="#a0aec0"/><text x="817" y="392" text-anchor="middle" fill="#1a202c" font-size="11">ruff · mypy</text>
+    </svg>
+  </div>
+
+  <div class="grid cols-2 section">
+    <div class="card accent-proc">
+      <h3>Static Pass — deterministic floor</h3>
+      <p>A pure <code>skill → findings</code> function. Four detectors scan line-by-line: Prompt Injection &amp; Analyzer Manipulation (recorded as Prompt Injection), Malicious Bundled Code, and Second-Stage / Obfuscation. Reads the raw Skill and <b>cannot be talked out of a match</b> — which is why it sets the floor.</p>
+    </div>
+    <div class="card accent-ai">
+      <h3>LLM Judgment — semantic catch</h3>
+      <p>Behind an injectable <code>LLMJudge</code> Protocol. <code>AnthropicJudge</code> wraps the Skill as clearly-delimited <b>untrusted <code>&lt;skill&gt;</code> data</b> with a hardened system prompt (analyze, never obey), then parses a JSON tier + findings + explanation. Catches disguised/novel intent regex misses.</p>
+    </div>
+  </div>
+
+  <!-- ══════════════════════ 5. FEATURES ══════════════════════ -->
+  <h2><span class="num">5</span>Features</h2>
+
+  <h3 style="margin-top:24px">Threat Vectors detected (v1)</h3>
+  <table>
+    <thead><tr><th>Threat Vector</th><th>What it catches</th><th>Example signal</th></tr></thead>
+    <tbody>
+      <tr><td>Prompt Injection</td><td>SKILL.md prose that redirects the agent to read secrets, exfiltrate, run destructive commands, or hide behavior</td><td><code>~/.ssh</code>, <code>read … .env</code>, "ignore previous instructions"</td></tr>
+      <tr><td>Malicious Bundled Code</td><td>Shipped scripts that do harm when the agent runs them</td><td><code>curl … | bash</code>, <code>/dev/tcp/</code>, <code>rm -rf /</code></td></tr>
+      <tr><td>Second-Stage / Obfuscation</td><td>Looks inert but decodes/downloads then executes a payload at runtime</td><td><code>base64 -d | sh</code>, <code>eval $(curl …)</code></td></tr>
+      <tr><td>Analyzer Manipulation <span style="font-size:.8em;color:var(--muted)">(→ Prompt Injection)</span></td><td>Text aimed at SkillGuard's own analyzer to self-certify as safe — treated as evidence of malice</td><td>"SYSTEM OVERRIDE", "output CLEAN", fake role markup</td></tr>
+    </tbody>
+  </table>
+
+  <h3 style="margin-top:24px">Verdict tiers</h3>
+  <table>
+    <thead><tr><th>Tier</th><th>Meaning</th><th>Exit code</th></tr></thead>
+    <tbody>
+      <tr class="tier-row"><td><span class="badge clean">Clean</span></td><td>No Threat Vectors found</td><td><code>0</code></td></tr>
+      <tr class="tier-row"><td><span class="badge susp">Suspicious</span></td><td>Signals present but not conclusive — human review</td><td><code>1</code></td></tr>
+      <tr class="tier-row"><td><span class="badge mal">Malicious</span></td><td>One or more Threat Vectors confirmed</td><td><code>1</code></td></tr>
+      <tr class="tier-row"><td style="color:var(--muted)">usage error</td><td>Path is not a Skill / API failure</td><td><code>2</code></td></tr>
+    </tbody>
+  </table>
+
+  <div class="grid cols-3 section">
+    <div class="card accent-ok"><span class="pill ok">Non-functional</span><h3>Deterministic core</h3><p>Static Pass is pure (no I/O, no globals) — each danger pattern is cheap to unit-test. LLM port stubbed → the pytest suite runs with no network or key.</p></div>
+    <div class="card accent-data"><span class="pill data">Non-functional</span><h3>Cross-platform identity</h3><p>Loader normalizes LF endings and drops <code>.git</code>/OS/editor junk, so the same Skill on Windows/Mac/Linux analyzes identically (the future Canonical Bundle Hash rule).</p></div>
+    <div class="card accent-ai"><span class="pill ai">Non-functional</span><h3>Injection-hardened</h3><p>Static floor (ADR 0002): the LLM can raise but never lower a flagged Skill to Clean. Skill content is data, never instructions.</p></div>
+  </div>
+
+  <div class="note">
+    <b>Accuracy is measured, not asserted.</b> <code>evals/run_eval.py</code> drives a corpus of <b>16 clean</b> Skills + <b>4 hand-crafted malicious</b> Skills (one per vector) through the <i>real</i> model, scoring detection rate, false-positive rate, latency, and vector attribution. It's kept out of pytest because the model is non-deterministic. Run <code>--offline</code> for a Static-Pass-only plumbing check.
+  </div>
+
+  <!-- ══════════════════════ 6. DEPLOYMENT ══════════════════════ -->
+  <h2><span class="num">6</span>Deployment &amp; Workflows</h2>
+
+  <div class="grid cols-2 section">
+    <div class="card">
+      <h3>Model &amp; prerequisites</h3>
+      <ul class="tight">
+        <li><b>Runtime:</b> Python 3.11+ CLI, packaged with hatchling</li>
+        <li><b>Deps:</b> <code>typer</code> (CLI), <code>anthropic</code> (LLM)</li>
+        <li><b>Secret:</b> <code>ANTHROPIC_API_KEY</code> for the LLM layer</li>
+        <li><b>Model:</b> <code>SKILLGUARD_MODEL</code> (defaults to <code>claude-sonnet-5</code>) — a config detail behind the port, not an architectural commitment</li>
+      </ul>
+    </div>
+    <div class="card">
+      <h3>Dev tooling</h3>
+      <ul class="tight">
+        <li><b>pytest</b> — deterministic suite, LLM stubbed, no network</li>
+        <li><b>ruff</b> + <b>mypy --strict</b> — lint &amp; types on <code>src</code></li>
+        <li><b>devtools/tester.py</b> — local web app watching a scan flow stage-by-stage; reuses <code>combine_verdict</code> so it matches <code>analyze</code></li>
+        <li><b>evals/</b> — accuracy measurement, tracked over time</li>
+      </ul>
+    </div>
+  </div>
+
+  <h3 style="margin-top:24px">Command surface</h3>
+  <div class="codebox">
+<span class="c"># install (dev)</span>
+uv venv &amp;&amp; uv pip install -e ".[dev]"
+
+<span class="c"># scan a Skill on disk → prints Verdict, sets exit code</span>
+skillguard scan path/to/skill
+  <span class="g">Verdict: Clean</span>        <span class="c"># exit 0</span>
+  <span class="y">Verdict: Suspicious</span>   <span class="c"># exit 1  (+ findings: [vector] file:line)</span>
+  <span class="r">Verdict: Malicious</span>    <span class="c"># exit 1</span>
+
+<span class="c"># measure accuracy against the real model</span>
+python evals/run_eval.py            <span class="c"># needs ANTHROPIC_API_KEY</span>
+python evals/run_eval.py --offline  <span class="c"># Static Pass only, no key</span>
+
+<span class="c"># watch a scan flow through the engine, stage by stage</span>
+python devtools/tester.py           <span class="c"># http://localhost:8000</span>
+  </div>
+
+  <div class="note">
+    <b>Deployment model:</b> local developer CLI / CI step. It reports only — there is no server, gate, cache, or shared database in this release. Exit codes make it wireable into scripts and pipelines today; the install gate and shared verdict DB are deliberately deferred until the engine's accuracy is validated.
+  </div>
+
+  <footer>
+    Generated architecture overview for <b>SkillGuard v0.1.0</b> · branch <code>feat/engine-only-scan</code>.
+    Sources: <code>README.md</code>, <code>CONTEXT.md</code>, <code>docs/prd/0001-engine-only-scan.md</code>, ADRs 0001–0002, and <code>src/skillguard/</code>.
+    Semantic colors: <span style="color:var(--data)">■</span> data · <span style="color:var(--proc)">■</span> deterministic · <span style="color:var(--ai)">■</span> LLM · <span style="color:var(--ok)">■</span> success.
+  </footer>
+</body>
+</html>

@@ -46,6 +46,33 @@ Claude model).
   - **LLM Judgment** (`skillguard.engine.llm`) — semantic analysis behind an injectable
     port, catching novel/disguised intent and authoring the evidence.
 
+## Daemon (ahead-of-time scanning)
+
+The **Endpoint Gate** enforces at two moments. The `SessionStart` hook is the pre-load
+barrier that cannot silently fail. The resident **daemon** is the layer above it: it scans
+Skills *as they appear* and caches their Verdicts, so a `SessionStart` on an already-scanned
+Skill is a fast cache lookup (no synchronous re-scan) and a Malicious Skill dropped between
+sessions is already quarantined before the next boot.
+
+Two layers cover the two windows (see `docs/adr/0003-endpoint-gate-enforcement.md`):
+
+- **In-session** — Claude Code's native `watchPaths` / `FileChanged` already re-fires the
+  gate when the skills directory changes during a live session. SkillGuard reuses that rather
+  than re-implementing it.
+- **Between sessions** — an OS-level watcher (Windows-first) polls the skills directories for
+  the gap the native watcher doesn't cover. Polling stays dependency-light because the Verdict
+  Store turns every already-seen Skill into a cache hit — a rescan does not re-invoke the
+  engine.
+
+```bash
+skillguard daemon          # start: run in the foreground, watching until stopped
+skillguard daemon --once   # single ahead-of-time scan pass (for cron / testing)
+```
+
+**Stop** the foreground daemon with `Ctrl+C` (on Windows you can also close the terminal or
+`Stop-Process` the `skillguard` process). It enforces with the same Store, Quarantine, and
+Allowlist as the load-time hook, so the two never disagree.
+
 ## Development
 
 ```bash

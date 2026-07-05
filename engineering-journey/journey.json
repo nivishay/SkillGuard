@@ -1,0 +1,63 @@
+{
+  "title": "SkillGuard Journey",
+  "entries": [
+    {
+      "date": "2026-07-04",
+      "title": "Add \"general knowledge\" category to the reflection roadmap",
+      "type": "knowledge",
+      "summary": "Extended the engineering-reflection skill with a cross-cutting \"general knowledge\" category — durable craft/workflow insight that isn't a bug or a trade-off — surfaced in its own topic-grouped panel plus a knowledge node type. Seeded it with the workflow lessons learned so far.",
+      "difficulty": 2,
+      "tradeoffs": [],
+      "bugs": [],
+      "skills": [
+        "engineering-reflection"
+      ],
+      "learnings": [
+        "The roadmap now aggregates craft notes across the whole journey into one topic-grouped panel, so general knowledge is a running cheat-sheet separate from the per-milestone tree."
+      ],
+      "knowledge": [
+        {
+          "topic": "Context window",
+          "insight": "Compact constantly and keep an eye on window size; close a session once its context is no longer relevant instead of letting it bloat — stale context is a cost, not a safety net."
+        },
+        {
+          "topic": "Agents & sessions",
+          "insight": "Split different problems across separate agents/sessions. Each session's window is scoped to one problem, so the right context gets sent every time instead of one giant window carrying everything."
+        },
+        {
+          "topic": "CLI vs MCP",
+          "insight": "CLI is best for straightforward commands but is prone to fat-fingering a long/complex invocation; MCP gives exact, structured usage for complex tasks (e.g. exposing data). Reach for CLI for simple ops, MCP when precision on a complex call matters."
+        }
+      ],
+      "impact": "The journey now captures how-to-work knowledge, not just what-got-built, so hard-won workflow lessons are remembered across projects.",
+      "id": "e1"
+    },
+    {
+      "date": "2026-07-04",
+      "title": "Grokking the injectable LLM port (ports & adapters)",
+      "type": "learning",
+      "summary": "Asked what \"ports-and-adapters architecture (injectable LLM port)\" actually means. Walked through SkillGuard's own port.py (the LLMJudge Protocol) and anthropic_judge.py (the concrete adapter) to see how the Detection Engine depends only on the interface, letting a real Claude adapter run in prod and a deterministic stub run in tests.",
+      "difficulty": 2,
+      "tradeoffs": [],
+      "bugs": [],
+      "skills": [
+        "Grep",
+        "Read"
+      ],
+      "learnings": [
+        "The Detection Engine never imports the Anthropic SDK — it talks only to the LLMJudge Protocol (a structural interface). AnthropicJudge is one adapter; a test stub is another.",
+        "\"Injectable\" means the engine receives an LLMJudge from outside rather than constructing one, so tests can pass a stub with hard-coded verdicts (no network, no API key, deterministic).",
+        "Python's Protocol gives structural typing: anything with a matching judge() method IS an LLMJudge, no inheritance required.",
+        "The pattern also quarantines the security-critical untrusted-data framing (ADR 0002) inside one adapter instead of smearing it across the codebase."
+      ],
+      "knowledge": [
+        {
+          "topic": "Ports & adapters",
+          "insight": "Keep core logic depending on an interface (port), never a concrete external system; plug real vs fake implementations in from outside (inject). The payoff is testability — swap a non-deterministic, costly dependency (an LLM, a DB, the network) for a controlled stub without touching the core."
+        }
+      ],
+      "impact": "Turned a named-but-fuzzy architecture term into a concrete mental model anchored in the project's own files, so future changes to the LLM layer are reasoned about at the right seam.",
+      "id": "e2"
+    }
+  ]
+}

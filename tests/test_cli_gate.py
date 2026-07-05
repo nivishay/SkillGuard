@@ -92,6 +92,18 @@ def test_hook_pre_tool_use_emits_deny_json_for_malicious(tmp_path: Path, monkeyp
     assert "Prompt Injection" in hook_specific["permissionDecisionReason"]
 
 
+def test_daemon_once_runs_a_single_scan_pass(tmp_path: Path, monkeypatch) -> None:
+    # No skills dir present -> the pass runs, quarantines nothing, and reports cleanly.
+    monkeypatch.setattr(cli.daemon_mod, "default_skills_dirs", lambda: [tmp_path / "none"])
+    monkeypatch.setattr(cli.daemon_mod, "store_root", lambda: tmp_path / "sg")
+    monkeypatch.setattr(cli.daemon_mod, "quarantine_root", lambda: tmp_path / "sg" / "q")
+
+    result = runner.invoke(cli.app, ["daemon", "--once"])
+
+    assert result.exit_code == 0
+    assert "quarantined 0" in result.stdout
+
+
 def test_restore_moves_quarantined_skill_back(tmp_path: Path, monkeypatch) -> None:
     skills = tmp_path / "skills"
     skill_dir = write_skill(skills / "evil", {"SKILL.md": "# evil\n"})
