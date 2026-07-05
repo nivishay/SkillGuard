@@ -20,7 +20,8 @@ from skillguard.install import install_hooks
 from skillguard.loader import SkillLoadError, load_skill
 from skillguard.paths import claude_home, quarantine_root, store_root
 from skillguard.quarantine import Quarantine, QuarantineError
-from skillguard.rendering import exit_code_for, render_verdict
+from skillguard.rendering import exit_code_for, render_status, render_verdict
+from skillguard.store import VerdictStore
 
 app = typer.Typer(
     name="skillguard",
@@ -109,6 +110,23 @@ def allow(
     bundle_hash = canonical_bundle_hash(skill)
     Allowlist(store_root()).allow(bundle_hash)
     typer.secho(f"Allowed {folder} ({bundle_hash[:12]})", fg=typer.colors.GREEN)
+
+
+@app.command()
+def status() -> None:
+    """Show the gate's state: cached Verdicts, quarantined Skills with Findings, the Allowlist."""
+    store = VerdictStore(store_root())
+    quarantine = Quarantine(quarantine_root())
+    allowlist = Allowlist(store_root())
+    # Join each quarantined entry back to its Verdict Store record by Canonical Bundle Hash so
+    # its Findings are recovered (the manifest holds no Findings): a Tier without its evidence
+    # is not acceptable. A missing record surfaces as None, still shown gracefully.
+    quarantined = [(entry, store.get(entry.bundle_hash)) for entry in quarantine.list()]
+    render_status(
+        cached=store.items(),
+        quarantined=quarantined,
+        allowlisted=allowlist.list(),
+    )
 
 
 @app.command("hook", hidden=True)
