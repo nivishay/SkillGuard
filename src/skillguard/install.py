@@ -14,6 +14,7 @@ from pathlib import Path
 from typing import Any
 
 SESSION_START_COMMAND = "skillguard hook session-start"
+PRE_TOOL_USE_COMMAND = "skillguard hook pre-tool-use"
 
 
 @dataclass(frozen=True)
@@ -29,9 +30,11 @@ class HookEntry:
     matcher: str | None = None
 
 
-# The hooks the walking skeleton installs. Later slices append (e.g. the PreToolUse backstop).
+# The hooks SkillGuard installs: the SessionStart pre-load barrier and the PreToolUse
+# mid-session backstop (matched on the Skill and Bash tools).
 HOOK_ENTRIES: tuple[HookEntry, ...] = (
     HookEntry(event="SessionStart", command=SESSION_START_COMMAND),
+    HookEntry(event="PreToolUse", command=PRE_TOOL_USE_COMMAND, matcher="Skill|Bash"),
 )
 
 

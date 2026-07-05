@@ -15,7 +15,7 @@ from skillguard.allowlist import Allowlist
 from skillguard.engine import DetectionEngine
 from skillguard.engine.llm.anthropic_judge import AnthropicJudge, LLMJudgeError
 from skillguard.hash import canonical_bundle_hash
-from skillguard.hooks import session_start
+from skillguard.hooks import pre_tool_use, session_start
 from skillguard.install import install_hooks
 from skillguard.loader import SkillLoadError, load_skill
 from skillguard.paths import claude_home, quarantine_root, store_root
@@ -118,6 +118,9 @@ def hook(
     """Internal dispatcher Claude Code invokes for a hook event. Not for direct use."""
     if event == "session-start":
         session_start.main()
+        return
+    if event == "pre-tool-use":
+        pre_tool_use.main()
         return
     typer.secho(f"error: unknown hook event: {event}", fg=typer.colors.RED, err=True)
     raise typer.Exit(code=_USAGE_ERROR)
