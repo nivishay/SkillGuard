@@ -3,115 +3,68 @@
   "entries": [
     {
       "date": "2026-07-04",
-      "title": "Add \"general knowledge\" category to the reflection roadmap",
-      "type": "knowledge",
-      "summary": "Extended the engineering-reflection skill with a cross-cutting \"general knowledge\" category — durable craft/workflow insight that isn't a bug or a trade-off — surfaced in its own topic-grouped panel plus a knowledge node type. Seeded it with the workflow lessons learned so far.",
-      "difficulty": 2,
-      "tradeoffs": [],
-      "bugs": [],
-      "skills": [
-        "engineering-reflection"
-      ],
-      "learnings": [
-        "The roadmap now aggregates craft notes across the whole journey into one topic-grouped panel, so general knowledge is a running cheat-sheet separate from the per-milestone tree."
-      ],
-      "knowledge": [
+      "title": "Designed the engineering-reflection skill",
+      "type": "design",
+      "summary": "Iterated a text-only reflection skill into a cumulative visual roadmap (git-tree HTML) with an inclusion gate so only real learning gets recorded.",
+      "difficulty": 3,
+      "tradeoffs": [
         {
-          "topic": "Context window",
-          "insight": "Compact constantly and keep an eye on window size; close a session once its context is no longer relevant instead of letting it bloat — stale context is a cost, not a safety net."
-        },
-        {
-          "topic": "Agents & sessions",
-          "insight": "Split different problems across separate agents/sessions. Each session's window is scoped to one problem, so the right context gets sent every time instead of one giant window carrying everything."
-        },
-        {
-          "topic": "CLI vs MCP",
-          "insight": "CLI is best for straightforward commands but is prone to fat-fingering a long/complex invocation; MCP gives exact, structured usage for complex tasks (e.g. exposing data). Reach for CLI for simple ops, MCP when precision on a complex call matters."
+          "chosen": "Inclusion gate: record only genuine learning or debated trade-offs",
+          "rejected": "Log every session as a node",
+          "why": "You raised this directly — the roadmap should map the learning curve, not activity; mechanical work (downloads, renames) shouldn't clutter it."
         }
       ],
-      "impact": "The journey now captures how-to-work knowledge, not just what-got-built, so hard-won workflow lessons are remembered across projects.",
+      "bugs": [
+        {
+          "symptom": "Script crashed: Cannot access 'typeOf' before initialization",
+          "rootCause": "render() ran before const TYPES/typeOf/CSS were initialized — only function declarations hoist, not const (temporal dead zone).",
+          "fix": "Moved the persist+render call to the end of the file, after all const declarations.",
+          "by": "machine"
+        }
+      ],
+      "skills": [
+        "write-a-skill",
+        "flow-architect",
+        "claude-in-chrome"
+      ],
+      "learnings": [
+        "The roadmap should map the learning curve, not activity — only genuine questions/debates earn a node.",
+        "A trade-off is only worth recording if it was actually debated; a bug the agent fixes alone is low-signal."
+      ],
+      "impact": "Turned a throwaway text summary into a durable, growing visual record of how the project's thinking evolves.",
       "id": "e1"
     },
     {
       "date": "2026-07-04",
-      "title": "Grokking the injectable LLM port (ports & adapters)",
-      "type": "learning",
-      "summary": "Asked what \"ports-and-adapters architecture (injectable LLM port)\" actually means. Walked through SkillGuard's own port.py (the LLMJudge Protocol) and anthropic_judge.py (the concrete adapter) to see how the Detection Engine depends only on the interface, letting a real Claude adapter run in prod and a deterministic stub run in tests.",
-      "difficulty": 2,
-      "tradeoffs": [],
-      "bugs": [],
-      "skills": [
-        "Grep",
-        "Read"
-      ],
-      "learnings": [
-        "The Detection Engine never imports the Anthropic SDK — it talks only to the LLMJudge Protocol (a structural interface). AnthropicJudge is one adapter; a test stub is another.",
-        "\"Injectable\" means the engine receives an LLMJudge from outside rather than constructing one, so tests can pass a stub with hard-coded verdicts (no network, no API key, deterministic).",
-        "Python's Protocol gives structural typing: anything with a matching judge() method IS an LLMJudge, no inheritance required.",
-        "The pattern also quarantines the security-critical untrusted-data framing (ADR 0002) inside one adapter instead of smearing it across the codebase."
-      ],
-      "knowledge": [
-        {
-          "topic": "Ports & adapters",
-          "insight": "Keep core logic depending on an interface (port), never a concrete external system; plug real vs fake implementations in from outside (inject). The payoff is testability — swap a non-deterministic, costly dependency (an LLM, a DB, the network) for a controlled stub without touching the core."
-        }
-      ],
-      "impact": "Turned a named-but-fuzzy architecture term into a concrete mental model anchored in the project's own files, so future changes to the LLM layer are reasoned about at the right seam.",
-      "id": "e2"
-    },
-    {
-      "date": "2026-07-06",
-      "title": "Why two hooks: SessionStart barrier vs PreToolUse backstop",
-      "type": "learning",
-      "summary": "Worked through how Claude Code hooks fire and why SkillGuard needs two of them: SessionStart runs once at boot (before skill descriptions load) and can quarantine files, while PreToolUse fires before every Skill/Bash call to catch Skills that arrive mid-session.",
-      "difficulty": 2,
-      "tradeoffs": [],
-      "bugs": [],
-      "skills": [
-        "Read",
-        "Grep",
-        "Glob"
-      ],
-      "learnings": [
-        "SessionStart is a one-shot snapshot at launch (typing `claude`) and boot blocks until it returns — that blocking is what realises the 'hold on unknown' rule.",
-        "SessionStart is the ONLY hook that can protect a Skill's description surface, because descriptions load into context at boot before any tool call, so PreToolUse never gets a chance at them.",
-        "PreToolUse exists purely to cover SessionStart's blind spot: Skills that land after boot (agent-generated, downloaded, or git-cloned mid-session) since SessionStart already fired and won't re-run.",
-        "The 'SessionStart-before-load' ordering is a load-bearing assumption — if Claude Code ever loaded descriptions before running SessionStart, the barrier would regress to next-session-only."
-      ],
-      "knowledge": [
-        {
-          "topic": "Claude Code hooks",
-          "insight": "Hooks are shell commands the harness runs at lifecycle points, not model choices — that's why they're reliable for enforcement. They take a JSON event on stdin and return JSON on stdout; PreToolUse is a veto point that can deny a tool call before it runs."
-        },
-        {
-          "topic": "Claude Code hooks",
-          "insight": "A hook subprocess is fed stdin on a pipe, so isatty() is false — a clean signal for 'no human present' to degrade interactive prompts to a safe non-blocking default instead of hanging."
-        }
-      ],
-      "impact": "Clarified the defense-in-depth rationale behind SkillGuard's two enforce points, making the boot-time vs use-time distinction concrete.",
-      "id": "e3"
-    },
-    {
-      "date": "2026-07-21",
-      "title": "Grilling the Control Plane: herd immunity + the fat-gate pivot",
+      "title": "SkillGuard architecture grill + engine-only PRD",
       "type": "design",
-      "summary": "A grill-with-docs session that designed the next step — a Control Plane vertical slice where one machine scans and the whole fleet adopts the Verdict. Surfaced that the shipped code (local engine per gate) contradicts ADR 0001 (thin client, upload-on-miss), reconciled the record, and produced PRD 0003 + ADR 0004.",
-      "difficulty": 3,
+      "summary": "Grilled a one-paragraph 'AI security for skills' idea into a decision-complete architecture (glossary, 2 ADRs, PRD, GitHub issue), walking a design tree one dependency at a time and isolating the single unproven risk into a shippable first slice.",
+      "difficulty": 4,
       "tradeoffs": [
         {
-          "chosen": "Adopt all Verdict tiers from the Control Plane, Clean included (hash-bound + engine_version-gated)",
-          "rejected": "Asymmetric trust: adopt Malicious/Suspicious but always re-scan on Clean",
-          "why": "User pushed back — Clean is the common case, so re-scanning every Clean Skill on every machine throws away nearly all the compute savings. Safety comes from content-hash binding + engine-version gating, not from refusing Clean."
+          "chosen": "Install-time CLI gate as surface #1",
+          "rejected": "Chrome Extension or GitHub Actions interception",
+          "why": "The extension only catches browser-discovered skills and CI only catches repo-committed ones; the CLI gate sits at the one choke point every install path (clone/curl/zip) converges on, and stays agent-agnostic so browser/CI become later clients not rewrites."
         },
         {
-          "chosen": "Model 2 — fat gate with a local engine, sharing only Verdict metadata (content never leaves the machine)",
-          "rejected": "Model 1 — thin client that uploads Skill content on a miss for central scanning (ADR 0001 as written)",
-          "why": "The code already ships a local engine, so Model 2 matches reality, keeps the Control Plane lightweight (no server-side LLM), and gives a strong privacy line. Cost: the CP can't independently verify a pushed verdict (rogue-writer gap), deferred to future write-auth."
+          "chosen": "Hash-first, upload-on-miss with a shared verdict cache",
+          "rejected": "Always upload full content, or scan fully locally",
+          "why": "Always-upload leaks content even for already-known skills; fully-local kills the shared cache and forces a weak on-device model. Hash-first keeps known skills private AND builds a network-effect cache where one scan protects every later developer."
         },
         {
-          "chosen": "React + Postgres for the Control Plane (industry-standard, resume-worthy)",
-          "rejected": "Server-rendered HTML + SQLite",
-          "why": "User wanted something show-off-worthy for a hiring manager. Scoped to avoid friction: React built and served as static from FastAPI (one process), Postgres only in the cloud CP while the endpoint store stays embedded."
+          "chosen": "Canonical bundle hash (LF-normalized, junk-excluded) as skill identity",
+          "rejected": "Raw byte hash, or source+version (repo+commit)",
+          "why": "User stress-tested with 'two devs download the same skill — same hash?': raw bytes diverge on Windows CRLF vs Linux LF (near-zero cache hits), source+version misses forks/mirrors. Only content-addressed + canonicalized identity makes 'same skill -> same hash' hold cross-platform, which the whole moat depends on."
+        },
+        {
+          "chosen": "Hybrid static + LLM detection with defense-in-depth",
+          "rejected": "LLM-only, or static-rules-only",
+          "why": "Static alone misses semantic injection ('review env config files' with no banned keyword); LLM alone is costly and can be prompt-injected by the skill it reads. Hybrid pairs a deterministic static floor the LLM can't downgrade with semantic judgment that only ever escalates."
+        },
+        {
+          "chosen": "Ship engine-only `skillguard scan` first",
+          "rejected": "Build full v1 (gate + cache + DB + provenance) up front",
+          "why": "Detection quality is the sole unproven risk; everything else is known plumbing. Validating the engine against an eval corpus before wrapping infra around it avoids betting plumbing on an engine that might not work."
         }
       ],
       "bugs": [],
