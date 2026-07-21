@@ -1,0 +1,506 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SkillGuard — Interactive Architecture</title>
+<style>
+  :root{
+    --bg:#0f1420; --panel:#161d2e; --panel2:#1e2740; --ink:#e8ecf5; --muted:#9aa7c2;
+    --line:#33405f; --edge:#5b6b90; --accent:#7c9cff; --shadow:0 12px 40px rgba(0,0,0,.45);
+  }
+  :root[data-theme="light"]{
+    --bg:#eef1f7; --panel:#ffffff; --panel2:#f5f7fb; --ink:#1c2436; --muted:#5a678a;
+    --line:#d6dce8; --edge:#9aa7c2; --accent:#3b5bdb; --shadow:0 12px 40px rgba(30,40,70,.18);
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;height:100%}
+  body{
+    font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;
+    background:var(--bg); color:var(--ink); overflow:hidden;
+  }
+  header{
+    display:flex; align-items:center; gap:16px; padding:12px 18px;
+    background:linear-gradient(90deg,#5a3bdb 0%,#7c4dff 45%,#3b5bdb 100%);
+    color:#fff; box-shadow:0 4px 20px rgba(0,0,0,.35); position:relative; z-index:20;
+  }
+  header .logo{font-size:22px;font-weight:800;letter-spacing:.3px;display:flex;align-items:center;gap:9px}
+  header .logo .shield{font-size:24px}
+  header .tag{font-size:12.5px;opacity:.9;font-weight:500}
+  header .spacer{flex:1}
+  header .tstack{font-size:11px;opacity:.85;max-width:340px;text-align:right;line-height:1.4}
+  .toolbar{
+    display:flex; align-items:center; gap:8px; padding:9px 16px; background:var(--panel);
+    border-bottom:1px solid var(--line); position:relative; z-index:15; flex-wrap:wrap;
+  }
+  .tabs{display:flex;gap:6px;background:var(--panel2);padding:4px;border-radius:11px}
+  .tab{
+    border:0; background:transparent; color:var(--muted); font-weight:600; font-size:13px;
+    padding:7px 14px; border-radius:8px; cursor:pointer; transition:.15s; white-space:nowrap;
+  }
+  .tab:hover{color:var(--ink)}
+  .tab.active{background:var(--accent); color:#fff; box-shadow:0 2px 10px rgba(60,90,255,.4)}
+  .view-desc{font-size:12.5px;color:var(--muted);flex:1;min-width:180px}
+  .btn{
+    border:1px solid var(--line); background:var(--panel2); color:var(--ink);
+    font-size:12.5px; font-weight:600; padding:7px 11px; border-radius:8px; cursor:pointer;
+    display:inline-flex; align-items:center; gap:6px; transition:.15s;
+  }
+  .btn:hover{border-color:var(--accent);color:var(--accent)}
+  .btn.on{background:var(--accent);color:#fff;border-color:var(--accent)}
+  .stage{position:absolute; inset:0; top:0; overflow:hidden; cursor:grab}
+  .stage.dragging{cursor:grabbing}
+  #wrap{position:relative; z-index:5; width:100%; height:100%}
+  #canvas{position:absolute; top:0; left:0; transform-origin:0 0; will-change:transform}
+  #edges{position:absolute; top:0; left:0; overflow:visible; pointer-events:none}
+  .node{
+    position:absolute; width:212px; background:var(--panel); border:1px solid var(--line);
+    border-left:5px solid var(--nc,#7c9cff); border-radius:12px; padding:12px 13px;
+    box-shadow:var(--shadow); cursor:pointer; transition:transform .12s, box-shadow .12s, opacity .2s;
+    user-select:none;
+  }
+  .node:hover{transform:translateY(-3px)}
+  .node .n-badge{
+    display:inline-block; font-size:10px; font-weight:700; text-transform:uppercase;
+    letter-spacing:.5px; color:var(--nc,#7c9cff); margin-bottom:5px;
+  }
+  .node .n-title{font-size:14.5px; font-weight:700; line-height:1.2}
+  .node .n-sub{font-size:11.5px; color:var(--muted); margin-top:4px; line-height:1.35}
+  .node .n-file{font-size:10.5px;color:var(--muted);margin-top:7px;font-family:ui-monospace,Menlo,Consolas,monospace;opacity:.8;word-break:break-all}
+  .node.dim{opacity:.16; filter:saturate(.4)}
+  .node.hot{box-shadow:0 0 0 3px var(--nc), var(--shadow)}
+  .node.sel{box-shadow:0 0 0 3px var(--accent), var(--shadow)}
+  path.edge{fill:none; stroke:var(--edge); stroke-width:2; transition:stroke .2s, stroke-width .2s, opacity .2s}
+  path.edge.dashed{stroke-dasharray:6 6}
+  path.edge.dim{opacity:.12}
+  path.edge.hot{stroke:var(--accent); stroke-width:3.2}
+  .elabel{font-size:10.5px; fill:var(--muted); font-weight:600; paint-order:stroke; stroke:var(--bg); stroke-width:4px}
+  .elabel.dim{opacity:.1}
+  .flow-dot{fill:var(--accent)}
+  .legend{
+    position:absolute; left:14px; bottom:14px; z-index:12; background:var(--panel);
+    border:1px solid var(--line); border-radius:12px; padding:11px 13px; box-shadow:var(--shadow);
+    max-width:230px;
+  }
+  .legend h4{margin:0 0 8px;font-size:11px;text-transform:uppercase;letter-spacing:.6px;color:var(--muted)}
+  .legend .row{display:flex;align-items:center;gap:8px;font-size:12px;padding:3px 5px;border-radius:6px;cursor:pointer}
+  .legend .row:hover{background:var(--panel2)}
+  .legend .row.muted{opacity:.35}
+  .legend .sw{width:13px;height:13px;border-radius:4px;flex:none}
+  .hint{position:absolute; right:14px; bottom:14px; z-index:12; font-size:11.5px; color:var(--muted);
+    background:var(--panel); border:1px solid var(--line); border-radius:9px; padding:7px 11px; box-shadow:var(--shadow)}
+  /* drawer */
+  #drawer{
+    position:absolute; top:0; right:0; height:100%; width:370px; max-width:88vw; z-index:30;
+    background:var(--panel); border-left:1px solid var(--line); box-shadow:-14px 0 44px rgba(0,0,0,.4);
+    transform:translateX(102%); transition:transform .28s cubic-bezier(.2,.7,.2,1); overflow-y:auto;
+  }
+  #drawer.open{transform:none}
+  #drawer .d-head{padding:20px 22px 16px; border-bottom:1px solid var(--line); border-top:6px solid var(--nc,#7c9cff)}
+  #drawer .d-badge{font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:var(--nc,#7c9cff)}
+  #drawer h2{margin:6px 0 4px; font-size:20px}
+  #drawer .d-sub{font-size:13px;color:var(--muted);line-height:1.4}
+  #drawer .d-body{padding:18px 22px 40px}
+  #drawer .sec{margin-bottom:18px}
+  #drawer .sec h3{font-size:11px;text-transform:uppercase;letter-spacing:.6px;color:var(--muted);margin:0 0 7px}
+  #drawer .sec p{margin:0;font-size:13.5px;line-height:1.55}
+  #drawer .kv{font-size:13px;line-height:1.6}
+  #drawer .kv b{color:var(--accent)}
+  #drawer code{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:12px;background:var(--panel2);
+    padding:2px 6px;border-radius:5px;border:1px solid var(--line)}
+  #drawer .chip{display:inline-block;font-size:11.5px;background:var(--panel2);border:1px solid var(--line);
+    border-radius:20px;padding:4px 11px;margin:3px 5px 0 0;color:var(--ink)}
+  #drawer .close{position:absolute;top:14px;right:16px;border:0;background:transparent;color:var(--muted);
+    font-size:24px;cursor:pointer;line-height:1}
+  #drawer .close:hover{color:var(--ink)}
+  .flowline{display:flex;flex-wrap:wrap;gap:6px;align-items:center;font-size:12px;color:var(--muted)}
+  .flowline .step{background:var(--panel2);border:1px solid var(--line);border-radius:7px;padding:4px 9px;color:var(--ink);font-weight:600}
+  .flowline .arr{color:var(--accent);font-weight:800}
+</style>
+</head>
+<body>
+<header>
+  <div class="logo"><span class="shield">🛡️</span> SkillGuard</div>
+  <div class="tag">Detect malicious AI agent Skills before your coding agent trusts and runs them</div>
+  <div class="spacer"></div>
+  <div class="tstack">Python 3.11+ · Typer CLI · Claude (LLM Judge) · Claude Code hooks · OS watcher (Windows-first)</div>
+</header>
+
+<div class="toolbar">
+  <div class="tabs" id="tabs"></div>
+  <div class="view-desc" id="viewDesc"></div>
+  <button class="btn on" id="flowBtn">▸ Flow</button>
+  <button class="btn" id="fitBtn">⤢ Fit</button>
+  <button class="btn" id="resetBtn">↺ Reset</button>
+  <button class="btn" id="themeBtn">🌗 Theme</button>
+</div>
+
+<div class="stage" id="stage">
+  <div id="wrap">
+    <svg id="edges"></svg>
+    <div id="canvas"></div>
+  </div>
+  <div class="legend" id="legend"><h4>Layers — click to filter</h4></div>
+  <div class="hint">Click a node for details · Drag to pan · Scroll to zoom</div>
+</div>
+
+<aside id="drawer">
+  <button class="close" id="drawerClose">×</button>
+  <div class="d-head"><div class="d-badge" id="dBadge"></div><h2 id="dTitle"></h2><div class="d-sub" id="dSub"></div></div>
+  <div class="d-body" id="dBody"></div>
+</aside>
+
+<script>
+/* ============================================================================
+   INTERACTIVE ARCHITECTURE ENGINE  (self-contained, no external deps)
+   Data-driven: fill MODEL below; the engine lays out, wires edges, animates
+   the flow, and renders the click-through detail drawer.
+   ========================================================================== */
+
+const GROUPS = {
+  surface:   {label:"Surfaces / Entry points", color:"#4c8dff"},
+  foundation:{label:"Loader & Identity",        color:"#38b2ac"},
+  gate:      {label:"Gate core (decide)",       color:"#64748b"},
+  static:    {label:"Static Pass",              color:"#ed8936"},
+  ai:        {label:"LLM Judgment",             color:"#9f7aea"},
+  decision:  {label:"Verdict / Decision",       color:"#667eea"},
+  persist:   {label:"Persistence",              color:"#f5a623"},
+  act_ok:    {label:"Allow / Clean action",     color:"#48bb78"},
+  act_block: {label:"Block / Quarantine",       color:"#ef4444"},
+};
+
+const MODEL = {
+  views: [
+    /* ---------------------------------------------------------------- */
+    { id:"scan", label:"Scan flow", desc:"skillguard scan <folder> → Verdict. How the Detection Engine reaches Clean / Suspicious / Malicious.",
+      nodes:[
+        {id:"cli", col:0, group:"surface", badge:"CLI", title:"skillguard scan", sub:"Thin entry point — parse args, invoke, render, set exit code", file:"skillguard/cli.py",
+          detail:{role:"The command-line front door. Holds no detection logic — it parses the folder path, drives the Loader then the Engine, prints the Verdict, and translates the tier into a process exit code so scans wire into CI.",
+            inputs:"path/to/skill (folder)", outputs:"Rendered Verdict + exit code (0 Clean · 1 Suspicious/Malicious · 2 usage error)",
+            files:["skillguard/cli.py","skillguard/rendering.py"]}},
+        {id:"loader", col:1, group:"foundation", badge:"Loader", title:"Skill Loader", sub:"Folder → normalized in-memory Skill", file:"skillguard/loader.py",
+          detail:{role:"Reads a folder into a normalized Skill: LF line endings, .git / OS / editor junk excluded. Normalization is what makes the same Skill hash identically on any machine.",
+            inputs:"Skill folder on disk", outputs:"Skill (SKILL.md + bundled files, normalized bytes)",
+            files:["skillguard/loader.py","skillguard/models.py"]}},
+        {id:"hash", col:1, group:"foundation", badge:"Identity", title:"Canonical Bundle Hash", sub:"Content identity for caching", file:"skillguard/hash.py",
+          detail:{role:"Hashes every declared file (relative path + normalized bytes), sorted and combined, into one identity. Same Skill anywhere → same hash → one shared Verdict, and any content change invalidates approvals.",
+            inputs:"normalized Skill", outputs:"canonical bundle hash (hex)", files:["skillguard/hash.py"]}},
+        {id:"static", col:2, group:"static", badge:"Layer 1", title:"Static Pass", sub:"Deterministic pattern match for known-dangerous signals", file:"skillguard/engine/static_pass.py",
+          detail:{role:"A pure function. Reads the raw Skill and matches known-dangerous signals — it cannot be talked out of a match, which is why it sets the ADR-0002 static floor.",
+            inputs:"Skill", outputs:"tuple[Finding] (deterministic)", files:["skillguard/engine/static_pass.py"]}},
+        {id:"llm", col:2, group:"ai", badge:"Layer 2", title:"LLM Judgment", sub:"Semantic analysis of intent behind an injectable port", file:"skillguard/engine/llm/",
+          detail:{role:"Sends the Skill (and the static findings) to a Claude model behind an injectable port. Catches novel or disguised Threat Vectors and authors the human-readable evidence. Stubbed in tests; real model needs ANTHROPIC_API_KEY.",
+            inputs:"Skill + static findings", outputs:"LLMJudgment (tier + findings + prose)",
+            files:["skillguard/engine/llm/port.py","skillguard/engine/llm/anthropic_judge.py"]}},
+        {id:"combine", col:3, group:"decision", badge:"Reconcile", title:"combine_verdict", sub:"Static floor — LLM may raise, never silently clear", file:"skillguard/engine/__init__.py",
+          detail:{role:"The single source of truth for reconciling the two layers. max(LLM tier, static floor): the LLM can RAISE severity but can never single-handedly downgrade a static-flagged Skill to Clean — it surfaces as at least Suspicious for a human (ADR 0002).",
+            inputs:"static findings + LLM judgment", outputs:"Verdict", files:["skillguard/engine/__init__.py"]}},
+        {id:"verdict", col:4, group:"decision", badge:"Result", title:"Verdict", sub:"Clean · Suspicious · Malicious + Findings", file:"skillguard/models.py",
+          detail:{role:"The tiered result plus the Findings that justify it. Clean → installs silently; Suspicious → warn + confirm; Malicious → block by default. A tier without its evidence is never acceptable.",
+            inputs:"reconciled tier + findings", outputs:"Verdict(tier, findings[])", files:["skillguard/models.py","skillguard/rendering.py"]}},
+      ],
+      edges:[
+        {from:"cli", to:"loader", label:"load folder"},
+        {from:"loader", to:"hash", label:"identity"},
+        {from:"loader", to:"static", label:"raw Skill"},
+        {from:"loader", to:"llm", label:"raw Skill"},
+        {from:"static", to:"combine", label:"findings + floor"},
+        {from:"llm", to:"combine", label:"tier + prose"},
+        {from:"combine", to:"verdict", label:"max(tier,floor)"},
+        {from:"verdict", to:"cli", label:"render + exit code", kind:"back"},
+      ]},
+
+    /* ---------------------------------------------------------------- */
+    { id:"gate", label:"Endpoint Gate", desc:"The involuntary checkpoint. Same core decides for every trigger, then enforcement acts on the Verdict.",
+      nodes:[
+        {id:"session", col:0, group:"surface", badge:"Hook", title:"SessionStart", sub:"Pre-load barrier — fires before Skills enter context", file:"skillguard/hooks/session_start.py",
+          detail:{role:"SkillGuard's primary barrier. Fires before Claude loads skill/agent context, so it is the one place a Prompt-Injection payload in a Skill's description can be stopped. Quarantines Malicious folders off disk and returns reloadSkills:true.",
+            inputs:"skills directories at boot", outputs:"quarantine + additionalContext (what moved & why)",
+            files:["skillguard/hooks/session_start.py"]}},
+        {id:"pretool", col:0, group:"surface", badge:"Hook", title:"PreToolUse", sub:"Mid-session backstop — hard-denies uncleared tool calls", file:"skillguard/hooks/pre_tool_use.py",
+          detail:{role:"Catches Skills that arrive during a live session. Runs the same gate core just before a Skill/Bash tool call. Moves no files: on a not-cleared Skill it emits a hard deny and hands Claude the Findings as the reason.",
+            inputs:"in-flight tool call", outputs:"deny + Findings", files:["skillguard/hooks/pre_tool_use.py"]}},
+        {id:"daemon", col:0, group:"surface", badge:"Resident", title:"Daemon", sub:"Between-session OS watcher — scans ahead of time", file:"skillguard/daemon.py",
+          detail:{role:"Scans Skills as they appear and caches Verdicts, so a later SessionStart on an already-seen Skill is a cache hit and a Skill dropped between sessions is quarantined before the next boot. Reuses scan_and_quarantine — enforces identically.",
+            inputs:"OS file events on skills dirs", outputs:"cached Verdicts + ahead-of-time quarantine",
+            files:["skillguard/daemon.py"]}},
+        {id:"evaluate", col:1, group:"gate", badge:"Core", title:"gate.evaluate", sub:"hash → allowlist → store lookup → scan-on-miss → posture", file:"skillguard/gate/core.py",
+          detail:{role:"The pure decision core. For each Skill: hash it, allow outright if on the Allowlist, look the hash up in the Store, scan on a miss (caching the result), then map the tier through the Posture. Unscannable → HOLD, never allowed (fail toward blocking).",
+            inputs:"skills_dir + engine + store + allowlist + posture", outputs:"list[GateDecision]",
+            files:["skillguard/gate/core.py"]}},
+        {id:"engine2", col:2, group:"ai", badge:"On miss", title:"Detection Engine", sub:"Static Pass + LLM Judgment → Verdict", file:"skillguard/engine/",
+          detail:{role:"Invoked only on a cache miss. Same analyze(skill)→Verdict pipeline as the scan flow (Static Pass floored, LLM Judgment on top). See the Scan flow view for the internals.",
+            inputs:"Skill (cache miss)", outputs:"Verdict → cached in Store", files:["skillguard/engine/__init__.py"]}},
+        {id:"resolve", col:2, group:"gate", badge:"Suspicious", title:"resolve_warnings", sub:"WARN → confirm (human) or deny-and-hold (autonomous)", file:"skillguard/gate/enforce.py",
+          detail:{role:"Turns a Suspicious WARN into a terminal action. Interactive: warn with Findings and ask for an explicit allow (persist the hash to the Allowlist). Non-interactive: deny-and-hold — never a silent allow, never a blocking prompt.",
+            inputs:"WARN decisions + interactive flag", outputs:"ALLOW / DENY / HOLD", files:["skillguard/gate/enforce.py"]}},
+        {id:"posture", col:2, group:"decision", badge:"Dial", title:"Enforcement Posture", sub:"tier → Action map (configurable, not hard-coded)", file:"skillguard/gate/core.py",
+          detail:{role:"The configurable mapping from each Verdict tier to an Action. Shipped default: Clean→allow, Suspicious→warn, Malicious→quarantine. An org can set a stricter posture centrally.",
+            inputs:"Verdict tier", outputs:"Action", files:["skillguard/gate/core.py"]}},
+        {id:"allow", col:3, group:"act_ok", badge:"Action", title:"ALLOW", sub:"Clean or approved — loads normally", file:"skillguard/gate/enforce.py",
+          detail:{role:"Terminal action for a Clean Verdict or an Allowlisted hash. The Skill is left in place and loads.",
+            inputs:"Clean / approved decision", outputs:"Skill loads", files:["skillguard/gate/core.py"]}},
+        {id:"quarantine", col:3, group:"act_block", badge:"Action", title:"QUARANTINE / HOLD", sub:"Move Malicious (and held Suspicious) off disk — reversible", file:"skillguard/quarantine.py",
+          detail:{role:"Moves the offending Skill's folder out of the scanned directory into a reversible holding area so the agent never loads it — crucially so an injection payload in the description never enters context. Malicious is quarantined; Suspicious that resolves to deny/hold is moved to the same area. Always surfaced with the reason, never silent, always restorable.",
+            inputs:"QUARANTINE / HOLD / DENY decision", outputs:"folder moved to holding area + reason",
+            files:["skillguard/quarantine.py","skillguard/gate/enforce.py"]}},
+        {id:"store", col:2, group:"persist", badge:"Cache", title:"Verdict Store", sub:"Hash → Verdict cache; turns rescans into cheap lookups", file:"skillguard/store.py",
+          detail:{role:"Persists one Verdict per Canonical Bundle Hash. It is what makes repeat sessions fast and daemon polling dependency-light: an already-seen Skill is a cache hit that never re-invokes the engine.",
+            inputs:"bundle hash", outputs:"cached Verdict record (or miss)", files:["skillguard/store.py"]}},
+        {id:"allowlist", col:1, group:"persist", badge:"Approvals", title:"Allowlist", sub:"Persisted approvals keyed by content hash", file:"skillguard/allowlist.py",
+          detail:{role:"The set of developer/org approvals that let an otherwise-gated Skill through, keyed by Canonical Bundle Hash so it applies to that exact content only. Change the content and the approval evaporates — an approved name can't smuggle swapped-in malicious content.",
+            inputs:"bundle hash", outputs:"approved? / persist approval", files:["skillguard/allowlist.py"]}},
+      ],
+      edges:[
+        {from:"session", to:"evaluate", label:"scan dirs"},
+        {from:"pretool", to:"evaluate", label:"in-flight call"},
+        {from:"daemon", to:"evaluate", label:"on file event"},
+        {from:"evaluate", to:"allowlist", label:"approved?"},
+        {from:"evaluate", to:"store", label:"hash lookup"},
+        {from:"store", to:"engine2", label:"on miss", kind:"dashed"},
+        {from:"engine2", to:"store", label:"cache Verdict", kind:"back"},
+        {from:"evaluate", to:"posture", label:"tier → action"},
+        {from:"posture", to:"resolve", label:"WARN?"},
+        {from:"posture", to:"allow", label:"ALLOW"},
+        {from:"resolve", to:"allow", label:"confirm"},
+        {from:"resolve", to:"quarantine", label:"deny / hold"},
+        {from:"posture", to:"quarantine", label:"QUARANTINE"},
+      ]},
+
+    /* ---------------------------------------------------------------- */
+    { id:"layers", label:"System layers", desc:"The whole codebase as stacked layers — surfaces on top, shared foundation at the base.",
+      nodes:[
+        {id:"L_cli", col:0, group:"surface", badge:"Surface", title:"CLI", sub:"skillguard scan · daemon · install", file:"skillguard/cli.py",
+          detail:{role:"Command-line surface: scan, daemon, install-hooks.", inputs:"argv", outputs:"Verdict / enforcement", files:["skillguard/cli.py","skillguard/install.py"]}},
+        {id:"L_hooks", col:1, group:"surface", badge:"Surface", title:"Claude Code hooks", sub:"SessionStart · PreToolUse", file:"skillguard/hooks/",
+          detail:{role:"The involuntary Endpoint Gate surfaces wired into Claude Code.", inputs:"hook payloads", outputs:"quarantine / deny + context", files:["skillguard/hooks/session_start.py","skillguard/hooks/pre_tool_use.py"]}},
+        {id:"L_daemon", col:2, group:"surface", badge:"Surface", title:"Daemon", sub:"Between-session OS watcher", file:"skillguard/daemon.py",
+          detail:{role:"Ahead-of-time scanning surface.", inputs:"file events", outputs:"cached Verdicts", files:["skillguard/daemon.py"]}},
+        {id:"L_gate", col:0, group:"gate", badge:"Decide", title:"Gate core + enforcement", sub:"evaluate · resolve_warnings · scan_and_quarantine", file:"skillguard/gate/",
+          detail:{role:"Shared decide-then-act layer every surface calls, so all three enforce identically.", inputs:"skills dir + ports", outputs:"GateDecision → Action", files:["skillguard/gate/core.py","skillguard/gate/enforce.py"]}},
+        {id:"L_engine", col:1, group:"static", badge:"Detect", title:"Detection Engine", sub:"Static Pass ⊕ LLM Judgment (static floor)", file:"skillguard/engine/",
+          detail:{role:"analyze(skill)→Verdict. Deterministic Static Pass + semantic LLM Judgment reconciled by combine_verdict.", inputs:"Skill", outputs:"Verdict", files:["skillguard/engine/__init__.py","skillguard/engine/static_pass.py","skillguard/engine/llm/"]}},
+        {id:"L_persist", col:0, group:"persist", badge:"State", title:"Verdict Store", sub:"hash → Verdict cache", file:"skillguard/store.py",
+          detail:{role:"Persisted cache; one Verdict per hash.", inputs:"hash", outputs:"Verdict record", files:["skillguard/store.py"]}},
+        {id:"L_quar", col:1, group:"act_block", badge:"State", title:"Quarantine", sub:"reversible holding area", file:"skillguard/quarantine.py",
+          detail:{role:"Reversible move of Skills that must not load.", inputs:"skill path", outputs:"moved + restorable", files:["skillguard/quarantine.py"]}},
+        {id:"L_allow", col:2, group:"persist", badge:"State", title:"Allowlist", sub:"approvals keyed by content hash", file:"skillguard/allowlist.py",
+          detail:{role:"Persisted approvals; evaporate on content change.", inputs:"hash", outputs:"approved?", files:["skillguard/allowlist.py"]}},
+        {id:"L_model", col:0, group:"foundation", badge:"Foundation", title:"Loader · Hash · Models", sub:"normalized Skill, Canonical Bundle Hash, Verdict/Finding/Tier", file:"skillguard/models.py",
+          detail:{role:"The vocabulary everything shares: normalized Skill, content identity, and the Verdict/Finding/Tier types.", inputs:"folder", outputs:"Skill + hash + typed results", files:["skillguard/loader.py","skillguard/hash.py","skillguard/models.py","skillguard/paths.py"]}},
+      ],
+      edges:[
+        {from:"L_cli", to:"L_gate", label:""},
+        {from:"L_hooks", to:"L_gate", label:""},
+        {from:"L_daemon", to:"L_gate", label:""},
+        {from:"L_gate", to:"L_engine", label:"scan on miss"},
+        {from:"L_gate", to:"L_persist", label:"cache"},
+        {from:"L_gate", to:"L_quar", label:"enforce"},
+        {from:"L_gate", to:"L_allow", label:"consult"},
+        {from:"L_engine", to:"L_model", label:""},
+        {from:"L_persist", to:"L_model", label:""},
+      ]},
+  ]
+};
+
+/* ---------------------------- ENGINE -------------------------------- */
+const COLW=212, COLGAP=104, ROWGAP=26, PADX=40, PADY=40, NODE_MINH=96;
+const stage=document.getElementById('stage'), wrap=document.getElementById('wrap');
+const canvas=document.getElementById('canvas'), svg=document.getElementById('edges');
+let view=0, zoom=1, panX=0, panY=0, flow=true, mutedGroups=new Set();
+let nodeEls={}, curNodes=[], curEdges=[];
+
+function el(tag,cls,html){const e=document.createElement(tag); if(cls)e.className=cls; if(html!=null)e.innerHTML=html; return e;}
+
+function buildTabs(){
+  const tabs=document.getElementById('tabs');
+  MODEL.views.forEach((v,i)=>{
+    const b=el('button','tab'+(i===0?' active':''),v.label);
+    b.onclick=()=>{view=i; [...tabs.children].forEach(c=>c.classList.remove('active')); b.classList.add('active'); mutedGroups.clear(); render();};
+    tabs.appendChild(b);
+  });
+}
+function buildLegend(){
+  const lg=document.getElementById('legend');
+  const used=new Set(MODEL.views.flatMap(v=>v.nodes.map(n=>n.group)));
+  Object.entries(GROUPS).filter(([k])=>used.has(k)).forEach(([k,g])=>{
+    const row=el('div','row'); row.dataset.g=k;
+    row.appendChild(Object.assign(el('span','sw'),{style:`background:${g.color}`}));
+    row.appendChild(el('span',null,g.label));
+    row.onclick=()=>{ if(mutedGroups.has(k))mutedGroups.delete(k); else mutedGroups.add(k);
+      row.classList.toggle('muted'); applyGroupFilter(); };
+    lg.appendChild(row);
+  });
+}
+
+function render(){
+  const v=MODEL.views[view];
+  document.getElementById('viewDesc').textContent=v.desc;
+  canvas.innerHTML=''; svg.innerHTML=''; nodeEls={}; curNodes=v.nodes; curEdges=v.edges;
+
+  // group nodes by column, stack vertically
+  const cols={};
+  v.nodes.forEach(n=>{ (cols[n.col]=cols[n.col]||[]).push(n); });
+  const colY={};
+  let maxX=0, maxY=0;
+  Object.keys(cols).map(Number).sort((a,b)=>a-b).forEach(c=>{
+    let y=PADY;
+    cols[c].forEach(n=>{
+      const g=GROUPS[n.group];
+      const node=el('div','node');
+      node.style.setProperty('--nc',g.color);
+      node.style.left=(PADX+c*(COLW+COLGAP))+'px';
+      node.style.top=y+'px';
+      node.innerHTML=`<span class="n-badge">${n.badge||''}</span>
+        <div class="n-title">${n.title}</div>
+        <div class="n-sub">${n.sub||''}</div>
+        ${n.file?`<div class="n-file">${n.file}</div>`:''}`;
+      node.onclick=(e)=>{e.stopPropagation(); openDrawer(n);};
+      node.onmouseenter=()=>highlight(n.id);
+      node.onmouseleave=()=>clearHighlight();
+      canvas.appendChild(node);
+      nodeEls[n.id]=node;
+      const h=Math.max(node.offsetHeight,NODE_MINH);
+      node.dataset.h=h;
+      y+=h+ROWGAP;
+      colY[c]=y;
+      maxX=Math.max(maxX, PADX+c*(COLW+COLGAP)+COLW+PADX);
+      maxY=Math.max(maxY, y);
+    });
+  });
+  canvas.style.width=maxX+'px'; canvas.style.height=maxY+'px';
+  svg.setAttribute('width',maxX); svg.setAttribute('height',maxY);
+  requestAnimationFrame(()=>{drawEdges(); fit();});
+}
+
+function nodeRect(id){
+  const e=nodeEls[id]; return {x:e.offsetLeft, y:e.offsetTop, w:e.offsetWidth, h:e.offsetHeight};
+}
+function drawEdges(){
+  svg.innerHTML='';
+  const ns='http://www.w3.org/2000/svg';
+  curEdges.forEach((ed,i)=>{
+    const a=nodeRect(ed.from), b=nodeRect(ed.to);
+    const back = ed.kind==='back' || b.x < a.x;
+    let sx,sy,tx,ty,d;
+    if(!back){
+      sx=a.x+a.w; sy=a.y+a.h/2; tx=b.x; ty=b.y+b.h/2;
+      const dx=Math.max(40,(tx-sx)/2);
+      d=`M ${sx} ${sy} C ${sx+dx} ${sy}, ${tx-dx} ${ty}, ${tx} ${ty}`;
+    } else {
+      // route below: exit bottom of source, enter bottom of target
+      sx=a.x+a.w/2; sy=a.y+a.h; tx=b.x+b.w/2; ty=b.y+b.h;
+      const dip=Math.max(sy,ty)+70;
+      d=`M ${sx} ${sy} C ${sx} ${dip}, ${tx} ${dip}, ${tx} ${ty}`;
+    }
+    const p=document.createElementNS(ns,'path');
+    p.setAttribute('d',d); p.setAttribute('id','ep'+i);
+    p.setAttribute('class','edge'+(ed.kind==='dashed'||back?' dashed':''));
+    p.dataset.from=ed.from; p.dataset.to=ed.to;
+    svg.appendChild(p);
+    if(ed.label){
+      const mid=midpoint(d);
+      const t=document.createElementNS(ns,'text');
+      t.setAttribute('x',mid.x); t.setAttribute('y',mid.y-6);
+      t.setAttribute('text-anchor','middle'); t.setAttribute('class','elabel');
+      t.dataset.from=ed.from; t.dataset.to=ed.to;
+      t.textContent=ed.label; svg.appendChild(t);
+    }
+    if(flow && !back){
+      const c=document.createElementNS(ns,'circle');
+      c.setAttribute('r','4'); c.setAttribute('class','flow-dot'); c.dataset.from=ed.from; c.dataset.to=ed.to;
+      const m=document.createElementNS(ns,'animateMotion');
+      m.setAttribute('dur',(1.6+ (i%3)*0.3)+'s'); m.setAttribute('repeatCount','indefinite');
+      const mp=document.createElementNS(ns,'mpath'); mp.setAttributeNS('http://www.w3.org/1999/xlink','href','#ep'+i);
+      mp.setAttribute('href','#ep'+i); m.appendChild(mp); c.appendChild(m); svg.appendChild(c);
+    }
+  });
+}
+function midpoint(d){ // sample cubic at t=0.5
+  const m=d.match(/M ([\d.]+) ([\d.]+) C ([\d.]+) ([\d.]+), ([\d.]+) ([\d.]+), ([\d.]+) ([\d.]+)/).slice(1).map(Number);
+  const[x0,y0,x1,y1,x2,y2,x3,y3]=m,t=.5,mt=1-t;
+  return {x:mt*mt*mt*x0+3*mt*mt*t*x1+3*mt*t*t*x2+t*t*t*x3,
+          y:mt*mt*mt*y0+3*mt*mt*t*y1+3*mt*t*t*y2+t*t*t*y3};
+}
+
+/* ---- highlight neighbours ---- */
+function highlight(id){
+  const neigh=new Set([id]);
+  curEdges.forEach(e=>{ if(e.from===id)neigh.add(e.to); if(e.to===id)neigh.add(e.from); });
+  Object.entries(nodeEls).forEach(([nid,e])=>{
+    e.classList.toggle('dim',!neigh.has(nid));
+    e.classList.toggle('hot',nid===id);
+  });
+  svg.querySelectorAll('path.edge').forEach(p=>{
+    const on=p.dataset.from===id||p.dataset.to===id;
+    p.classList.toggle('hot',on); p.classList.toggle('dim',!on);
+  });
+  svg.querySelectorAll('text.elabel').forEach(t=>{
+    t.classList.toggle('dim',!(t.dataset.from===id||t.dataset.to===id));
+  });
+}
+function clearHighlight(){
+  Object.values(nodeEls).forEach(e=>e.classList.remove('dim','hot'));
+  svg.querySelectorAll('path.edge').forEach(p=>p.classList.remove('hot','dim'));
+  svg.querySelectorAll('text.elabel').forEach(t=>t.classList.remove('dim'));
+  applyGroupFilter();
+}
+function applyGroupFilter(){
+  if(!mutedGroups.size){Object.values(nodeEls).forEach(e=>e.classList.remove('dim'));return;}
+  curNodes.forEach(n=>{ nodeEls[n.id].classList.toggle('dim', mutedGroups.has(n.group)); });
+}
+
+/* ---- drawer ---- */
+function openDrawer(n){
+  const g=GROUPS[n.group], d=n.detail||{};
+  const dr=document.getElementById('drawer');
+  dr.style.setProperty('--nc',g.color);
+  document.getElementById('dBadge').textContent=g.label;
+  document.getElementById('dTitle').textContent=n.title;
+  document.getElementById('dSub').textContent=n.sub||'';
+  const files=(d.files||[]).map(f=>`<span class="chip">${f}</span>`).join('');
+  document.getElementById('dBody').innerHTML=`
+    <div class="sec"><h3>What it does</h3><p>${d.role||''}</p></div>
+    <div class="sec"><h3>In / Out</h3><div class="kv"><b>In</b> — ${d.inputs||'—'}<br><b>Out</b> — ${d.outputs||'—'}</div></div>
+    <div class="sec"><h3>Source</h3>${files||'—'}</div>`;
+  dr.classList.add('open');
+  Object.values(nodeEls).forEach(e=>e.classList.remove('sel'));
+  nodeEls[n.id].classList.add('sel');
+}
+function closeDrawer(){document.getElementById('drawer').classList.remove('open');
+  Object.values(nodeEls).forEach(e=>e.classList.remove('sel'));}
+document.getElementById('drawerClose').onclick=closeDrawer;
+document.addEventListener('keydown',e=>{if(e.key==='Escape')closeDrawer();});
+
+/* ---- pan & zoom ---- */
+function applyT(){canvas.style.transform=svg.style.transform=`translate(${panX}px,${panY}px) scale(${zoom})`;}
+function fit(){
+  const cw=canvas.offsetWidth||1, ch=canvas.offsetHeight||1;
+  const vw=stage.clientWidth-40, vh=stage.clientHeight-120;
+  zoom=Math.min(1, vw/cw, vh/ch); zoom=Math.max(zoom,.35);
+  panX=Math.max(20,(stage.clientWidth-cw*zoom)/2); panY=24; applyT();
+}
+stage.addEventListener('wheel',e=>{e.preventDefault();
+  const f=e.deltaY<0?1.12:1/1.12, nz=Math.min(2.4,Math.max(.3,zoom*f));
+  const rx=e.clientX-panX, ry=e.clientY-panY;
+  panX-=rx*(nz/zoom-1); panY-=ry*(nz/zoom-1); zoom=nz; applyT();
+},{passive:false});
+let drag=null;
+stage.addEventListener('mousedown',e=>{ if(e.target.closest('.node')||e.target.closest('#drawer')||e.target.closest('.legend'))return;
+  drag={x:e.clientX-panX,y:e.clientY-panY}; stage.classList.add('dragging');});
+window.addEventListener('mousemove',e=>{ if(!drag)return; panX=e.clientX-drag.x; panY=e.clientY-drag.y; applyT();});
+window.addEventListener('mouseup',()=>{drag=null; stage.classList.remove('dragging');});
+
+/* ---- toolbar ---- */
+document.getElementById('fitBtn').onclick=fit;
+document.getElementById('resetBtn').onclick=()=>{zoom=1;fit();};
+document.getElementById('flowBtn').onclick=(e)=>{flow=!flow; e.target.classList.toggle('on',flow); drawEdges();};
+document.getElementById('themeBtn').onclick=()=>{
+  const r=document.documentElement; r.dataset.theme = r.dataset.theme==='light'?'':'light'; drawEdges();
+};
+window.addEventListener('resize',()=>{drawEdges();});
+
+buildTabs(); buildLegend(); render();
+</script>
+</body>
+</html>

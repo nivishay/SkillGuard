@@ -69,21 +69,36 @@
       ],
       "bugs": [],
       "skills": [
-        "grill-with-docs",
         "grilling",
         "domain-modeling",
-        "to-prd",
-        "git",
-        "gh-cli"
+        "Read",
+        "Grep",
+        "Write",
+        "Edit"
       ],
       "learnings": [
-        "An install-time CLI gate is the universal choke point for AI-skill installs, because every discovery path still has to land the skill on disk before the agent trusts it.",
-        "A shared verdict cache only works if identity is content-addressed AND canonicalized (LF line endings, exclude .git/OS junk) so the same skill yields the same hash across Windows/Mac/Linux.",
-        "Static detection is grep-on-steroids for known-bad primitives (curl|bash, ~/.ssh, base64 -d | sh) but is blind to innocent-sounding semantic injection, which is what the LLM layer is for.",
-        "A security analyzer's input is adversarial toward the analyzer itself: a skill can try to talk the LLM into a CLEAN verdict, so manipulation attempts must escalate the verdict, backed by a static floor the LLM can never downgrade."
+        "The local Verdict Store is the CACHE; the Control Plane Postgres is the SOURCE OF TRUTH — opposite roles. The endpoint caches from the cloud origin, so Postgres is never the 'cache'.",
+        "Herd immunity = scan each unique Skill once per fleet, not once per machine. Adopting Clean verdicts is where the savings live, since most Skills are Clean.",
+        "What makes trusting a remote Verdict safe is content-hash binding (adopt only for exact bytes) + engine_version gating (adopt only if the remote engine >= mine) — not wall-clock freshness; a fresh wrong verdict is still wrong.",
+        "Verdict (deduped per content, no machine) and Sighting (per-machine encounter, with a Source of scanned/adopted/cache) are two different concepts — the dashboard needs the per-machine dimension a Verdict doesn't carry.",
+        "The CP query slots into evaluate() as a nullable ControlPlanePort mirroring the existing EnginePort/AllowlistPort; cp=None means standalone-local, which IS the fail-safe and keeps the existing test suite green."
       ],
-      "impact": "Converted a vague product idea into a documented, testable architecture that de-risks the one uncertain component first, demonstrating design judgment under adversarial security constraints.",
-      "id": "e2"
+      "knowledge": [
+        {
+          "topic": "Design docs / ADRs",
+          "insight": "Cross-check ADRs against the code as you design — a shipped decision can silently diverge from its ADR (here the engine went local while ADR 0001 still assumed a thin client). When you find the contradiction, reconcile the record (amend/supersede) rather than paper over it, or the next reader trusts a stale doc."
+        },
+        {
+          "topic": "Architecture",
+          "insight": "Endpoint-agent + central-server shape: keep a light agent on every endpoint and one heavy DB in the cloud (EDR/Sentry/Datadog pattern). Two stores with opposite roles — embedded cache on the endpoint, authoritative DB centrally. For a demo you collapse the whole topology (server + DB + several agents) onto one laptop, but say so when presenting."
+        },
+        {
+          "topic": "Ports & adapters",
+          "insight": "Injecting an optional dependency as a NULLABLE port whose None-case is the safe fallback gives you the degrade-gracefully behavior for free and keeps every existing test passing untouched — the absence of the adapter is a first-class, safe mode."
+        }
+      ],
+      "impact": "Turned a vague 'what's next' into a fully-grilled, buildable Control Plane slice with the architecture pivot (fat gate, metadata-only) reconciled across ADR 0001/0004, PRD 0003, and the glossary.",
+      "id": "e4"
     }
   ]
 }

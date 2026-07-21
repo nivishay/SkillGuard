@@ -6,8 +6,10 @@ exercised through ``analyze`` with the LLM port injected.
 
 from __future__ import annotations
 
+from pathlib import Path
+
 from skillguard.engine.llm.port import LLMJudgment
-from skillguard.models import Finding, Skill, SkillFile, Tier
+from skillguard.models import Finding, Skill, SkillFile, Tier, Verdict
 
 
 class StubJudge:
@@ -27,6 +29,34 @@ class StubJudge:
     def judge(self, skill: Skill, static_findings: tuple[Finding, ...]) -> LLMJudgment:
         self.calls.append((skill, static_findings))
         return LLMJudgment(tier=self.tier, findings=self.findings, explanation=self.explanation)
+
+
+class StubEngine:
+    """A canned Detection Engine for gate tests: returns a fixed Verdict and records every
+    Skill it was asked to analyze, so a test can assert whether a scan happened at all."""
+
+    def __init__(self, verdict: Verdict | None = None) -> None:
+        self.verdict = verdict if verdict is not None else Verdict(tier=Tier.CLEAN)
+        self.calls: list[Skill] = []
+
+    def analyze(self, skill: Skill) -> Verdict:
+        self.calls.append(skill)
+        return self.verdict
+
+
+def write_skill(folder: Path, files: dict[str, str] | None = None) -> Path:
+    """Materialize a Skill folder on disk under ``folder`` and return it.
+
+    Defaults to a single benign ``SKILL.md`` so tests that only need "a Skill exists" can
+    pass just the folder. Used for gate/quarantine/hook tests that read the filesystem.
+    """
+    files = files if files is not None else {"SKILL.md": "# skill\n"}
+    folder.mkdir(parents=True, exist_ok=True)
+    for rel, text in files.items():
+        path = folder / rel
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(text, encoding="utf-8")
+    return folder
 
 
 def make_skill(files: dict[str, str] | None = None, *, root: str = "skill") -> Skill:

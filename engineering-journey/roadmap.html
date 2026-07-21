@@ -3,8 +3,9 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>SkillGuard Journey · Roadmap</title>
 <style>
-:root{--bg:#f7f8fa;--fg:#1f2430;--mut:#6b7280;--card:#ffffff;--line:#d6dae1;--rail:#c3c9d4}
+:root,:root[data-theme="light"]{--bg:#f7f8fa;--fg:#1f2430;--mut:#6b7280;--card:#ffffff;--line:#d6dae1;--rail:#c3c9d4}
 @media(prefers-color-scheme:dark){:root{--bg:#0f1117;--fg:#e6e8ee;--mut:#9aa3b2;--card:#171a22;--line:#2a2f3a;--rail:#333a47}}
+:root[data-theme="dark"]{--bg:#0f1117;--fg:#e6e8ee;--mut:#9aa3b2;--card:#171a22;--line:#2a2f3a;--rail:#333a47}
 *{box-sizing:border-box}
 body{margin:0;font:15px/1.55 -apple-system,Segoe UI,Roboto,sans-serif;background:var(--bg);color:var(--fg);padding:28px 18px 60px}
 h1,h2,h3{margin:0}
@@ -25,6 +26,16 @@ h1,h2,h3{margin:0}
 .chip{background:var(--bg);border:1px solid var(--line);border-radius:20px;padding:3px 10px;font-size:13px;display:inline-flex;gap:6px;align-items:center}
 .chip b{color:var(--mut);font-size:11px}
 .chip.sm{font-size:11px;padding:2px 8px}
+.know{max-width:900px;margin:0 auto 18px;background:var(--card);border:1px solid var(--line);border-left:4px solid #06b6d4;border-radius:14px;padding:14px 16px}
+.know>h2{font-size:14px;margin-bottom:12px}
+.know-groups{display:grid;grid-template-columns:1fr 1fr;gap:12px 20px}
+@media(max-width:640px){.know-groups{grid-template-columns:1fr}}
+.know-group{min-width:0}
+.know-topic{font-size:12px;font-weight:700;color:#06b6d4;text-transform:uppercase;letter-spacing:.04em;margin-bottom:2px}
+.know-list{margin:2px 0 0;padding-left:16px}
+.know-list li{margin:5px 0;font-size:13.5px}
+.know-date{color:var(--mut);font-size:11px;margin-left:6px;white-space:nowrap}
+.know-node .kt{color:#06b6d4}
 .legend{max-width:900px;margin:0 auto 10px;display:flex;gap:14px;flex-wrap:wrap;font-size:12px;color:var(--mut)}
 .lg{display:inline-flex;align-items:center;gap:5px}
 .lg i{width:10px;height:10px;border-radius:50%;display:inline-block}
@@ -62,63 +73,95 @@ li{margin:4px 0}
 <body>
 <header class="hd">
   <h1>SkillGuard Journey</h1>
-  <p class="sub">Engineering journey · 2 milestones · generated 2026-07-04 14:41</p>
-  <div class="stats"><div class="stat"><div class="stat-v">2</div><div class="stat-l">milestones</div></div><div class="stat"><div class="stat-v">0</div><div class="stat-l">bugs fixed</div></div><div class="stat"><div class="stat-v">6</div><div class="stat-l">trade-offs</div></div><div class="stat"><div class="stat-v">6</div><div class="stat-l">learnings</div></div><div class="stat"><div class="stat-v">9</div><div class="stat-l">skills used</div></div></div>
+  <p class="sub">Engineering journey · 4 milestones · generated 2026-07-21 11:21</p>
+  <div class="stats"><div class="stat"><div class="stat-v">4</div><div class="stat-l">milestones</div></div><div class="stat"><div class="stat-v">0</div><div class="stat-l">bugs fixed</div></div><div class="stat"><div class="stat-v">3</div><div class="stat-l">trade-offs</div></div><div class="stat"><div class="stat-v">14</div><div class="stat-l">learnings</div></div><div class="stat"><div class="stat-v">9</div><div class="stat-l">craft notes</div></div><div class="stat"><div class="stat-v">8</div><div class="stat-l">skills used</div></div></div>
 </header>
 
 <section class="panel">
   <div class="col">
     <h2>Learning curve <span class="muted">(difficulty 1–5 over time)</span></h2>
     <svg viewBox="0 0 320 90" class="spark" preserveAspectRatio="none">
-    <polygon points="12,78 12.0,45.0 308.0,28.5 308,78" fill="#10b98122"/>
-    <polyline points="12.0,45.0 308.0,28.5" fill="none" stroke="#10b981" stroke-width="2"/>
-    <circle cx="12.0" cy="45.0" r="3.5" fill="#10b981"/><circle cx="308.0" cy="28.5" r="3.5" fill="#10b981"/>
+    <polygon points="12,78 12.0,61.5 110.7,61.5 209.3,61.5 308.0,45.0 308,78" fill="#10b98122"/>
+    <polyline points="12.0,61.5 110.7,61.5 209.3,61.5 308.0,45.0" fill="none" stroke="#10b981" stroke-width="2"/>
+    <circle cx="12.0" cy="61.5" r="3.5" fill="#10b981"/><circle cx="110.7" cy="61.5" r="3.5" fill="#10b981"/><circle cx="209.3" cy="61.5" r="3.5" fill="#10b981"/><circle cx="308.0" cy="45.0" r="3.5" fill="#10b981"/>
   </svg>
   </div>
   <div class="col">
     <h2>Skills exercised</h2>
-    <div class="chips"><span class="chip">write-a-skill<b>1</b></span><span class="chip">flow-architect<b>1</b></span><span class="chip">claude-in-chrome<b>1</b></span><span class="chip">grill-with-docs<b>1</b></span><span class="chip">grilling<b>1</b></span><span class="chip">domain-modeling<b>1</b></span><span class="chip">to-prd<b>1</b></span><span class="chip">git<b>1</b></span><span class="chip">gh-cli<b>1</b></span></div>
+    <div class="chips"><span class="chip">Grep<b>3</b></span><span class="chip">Read<b>3</b></span><span class="chip">engineering-reflection<b>1</b></span><span class="chip">Glob<b>1</b></span><span class="chip">grilling<b>1</b></span><span class="chip">domain-modeling<b>1</b></span><span class="chip">Write<b>1</b></span><span class="chip">Edit<b>1</b></span></div>
   </div>
 </section>
 
-<div class="legend"><span class="lg"><i style="background:#3b82f6"></i>Feature</span><span class="lg"><i style="background:#ef4444"></i>Bug fix</span><span class="lg"><i style="background:#a855f7"></i>Design</span><span class="lg"><i style="background:#f59e0b"></i>Refactor</span><span class="lg"><i style="background:#10b981"></i>Learning</span><span class="lg"><i style="background:#64748b"></i>Note</span></div>
+<section class="know">
+      <h2>General knowledge <span class="muted">— craft &amp; workflow, cross-cutting</span></h2>
+      <div class="know-groups"><div class="know-group"><div class="know-topic">Context window</div><ul class="know-list"><li>Compact constantly and keep an eye on window size; close a session once its context is no longer relevant instead of letting it bloat — stale context is a cost, not a safety net.<span class="know-date">2026-07-04</span></li></ul></div><div class="know-group"><div class="know-topic">Agents &amp; sessions</div><ul class="know-list"><li>Split different problems across separate agents/sessions. Each session's window is scoped to one problem, so the right context gets sent every time instead of one giant window carrying everything.<span class="know-date">2026-07-04</span></li></ul></div><div class="know-group"><div class="know-topic">CLI vs MCP</div><ul class="know-list"><li>CLI is best for straightforward commands but is prone to fat-fingering a long/complex invocation; MCP gives exact, structured usage for complex tasks (e.g. exposing data). Reach for CLI for simple ops, MCP when precision on a complex call matters.<span class="know-date">2026-07-04</span></li></ul></div><div class="know-group"><div class="know-topic">Ports &amp; adapters</div><ul class="know-list"><li>Keep core logic depending on an interface (port), never a concrete external system; plug real vs fake implementations in from outside (inject). The payoff is testability — swap a non-deterministic, costly dependency (an LLM, a DB, the network) for a controlled stub without touching the core.<span class="know-date">2026-07-04</span></li><li>Injecting an optional dependency as a NULLABLE port whose None-case is the safe fallback gives you the degrade-gracefully behavior for free and keeps every existing test passing untouched — the absence of the adapter is a first-class, safe mode.<span class="know-date">2026-07-21</span></li></ul></div><div class="know-group"><div class="know-topic">Claude Code hooks</div><ul class="know-list"><li>Hooks are shell commands the harness runs at lifecycle points, not model choices — that's why they're reliable for enforcement. They take a JSON event on stdin and return JSON on stdout; PreToolUse is a veto point that can deny a tool call before it runs.<span class="know-date">2026-07-06</span></li><li>A hook subprocess is fed stdin on a pipe, so isatty() is false — a clean signal for 'no human present' to degrade interactive prompts to a safe non-blocking default instead of hanging.<span class="know-date">2026-07-06</span></li></ul></div><div class="know-group"><div class="know-topic">Design docs / ADRs</div><ul class="know-list"><li>Cross-check ADRs against the code as you design — a shipped decision can silently diverge from its ADR (here the engine went local while ADR 0001 still assumed a thin client). When you find the contradiction, reconcile the record (amend/supersede) rather than paper over it, or the next reader trusts a stale doc.<span class="know-date">2026-07-21</span></li></ul></div><div class="know-group"><div class="know-topic">Architecture</div><ul class="know-list"><li>Endpoint-agent + central-server shape: keep a light agent on every endpoint and one heavy DB in the cloud (EDR/Sentry/Datadog pattern). Two stores with opposite roles — embedded cache on the endpoint, authoritative DB centrally. For a demo you collapse the whole topology (server + DB + several agents) onto one laptop, but say so when presenting.<span class="know-date">2026-07-21</span></li></ul></div></div>
+    </section>
+
+<div class="legend"><span class="lg"><i style="background:#3b82f6"></i>Feature</span><span class="lg"><i style="background:#ef4444"></i>Bug fix</span><span class="lg"><i style="background:#a855f7"></i>Design</span><span class="lg"><i style="background:#f59e0b"></i>Refactor</span><span class="lg"><i style="background:#10b981"></i>Learning</span><span class="lg"><i style="background:#06b6d4"></i>Craft knowledge</span><span class="lg"><i style="background:#64748b"></i>Note</span></div>
 
 <main class="tree"><div class="node">
-    <div class="rail"><span class="dot" style="background:#a855f7;box-shadow:0 0 0 4px #a855f733"></span></div>
-    <div class="card" style="--tc:#a855f7">
+    <div class="rail"><span class="dot" style="background:#06b6d4;box-shadow:0 0 0 4px #06b6d433"></span></div>
+    <div class="card" style="--tc:#06b6d4">
       <div class="card-hd">
-        <span class="badge" style="background:#a855f7">Design</span>
+        <span class="badge" style="background:#06b6d4">Craft knowledge</span>
         <span class="date">2026-07-04</span>
-        <span class="diff" title="difficulty 3/5">●●●○○</span>
+        <span class="diff" title="difficulty 2/5">●●○○○</span>
       </div>
-      <h3>Designed the engineering-reflection skill</h3>
-      <p class="summary">Iterated a text-only reflection skill into a cumulative visual roadmap (git-tree HTML) with an inclusion gate so only real learning gets recorded.</p>
-<details open><summary>Trade-offs (1)</summary><ul class="to"><li><span class="pick">✔ Inclusion gate: record only genuine learning or debated trade-offs</span> <span class="drop">✘ Log every session as a node</span>
-        <div class="why">You raised this directly — the roadmap should map the learning curve, not activity; mechanical work (downloads, renames) shouldn't clutter it.</div></li></ul></details>
-<details><summary>Bugs &amp; fixes (0 of 1, 1 self-fixed)</summary><ul class="bug"><li class="muted-bug"><b>Script crashed: Cannot access 'typeOf' before initialization</b> <span class="who auto">agent self-fixed</span> — root cause: render() ran before const TYPES/typeOf/CSS were initialized — only function declarations hoist, not const (temporal dead zone).<div class="fix">fix: Moved the persist+render call to the end of the file, after all const declarations.</div></li></ul></details>
-<details><summary>Learnings (2)</summary><ul class="learn"><li>The roadmap should map the learning curve, not activity — only genuine questions/debates earn a node.</li><li>A trade-off is only worth recording if it was actually debated; a bug the agent fixes alone is low-signal.</li></ul></details>
-<div class="node-skills"><span class="chip sm">write-a-skill</span><span class="chip sm">flow-architect</span><span class="chip sm">claude-in-chrome</span></div>
-<p class="impact">🎯 Turned a throwaway text summary into a durable, growing visual record of how the project's thinking evolves.</p>
+      <h3>Add &quot;general knowledge&quot; category to the reflection roadmap</h3>
+      <p class="summary">Extended the engineering-reflection skill with a cross-cutting &quot;general knowledge&quot; category — durable craft/workflow insight that isn't a bug or a trade-off — surfaced in its own topic-grouped panel plus a knowledge node type. Seeded it with the workflow lessons learned so far.</p>
+<details><summary>Learnings (1)</summary><ul class="learn"><li>The roadmap now aggregates craft notes across the whole journey into one topic-grouped panel, so general knowledge is a running cheat-sheet separate from the per-milestone tree.</li></ul></details>
+<details open><summary>General knowledge (3)</summary><ul class="know-node"><li><b class="kt">Context window:</b> Compact constantly and keep an eye on window size; close a session once its context is no longer relevant instead of letting it bloat — stale context is a cost, not a safety net.</li><li><b class="kt">Agents &amp; sessions:</b> Split different problems across separate agents/sessions. Each session's window is scoped to one problem, so the right context gets sent every time instead of one giant window carrying everything.</li><li><b class="kt">CLI vs MCP:</b> CLI is best for straightforward commands but is prone to fat-fingering a long/complex invocation; MCP gives exact, structured usage for complex tasks (e.g. exposing data). Reach for CLI for simple ops, MCP when precision on a complex call matters.</li></ul></details>
+<div class="node-skills"><span class="chip sm">engineering-reflection</span></div>
+<p class="impact">🎯 The journey now captures how-to-work knowledge, not just what-got-built, so hard-won workflow lessons are remembered across projects.</p>
+    </div>
+  </div><div class="node">
+    <div class="rail"><span class="dot" style="background:#10b981;box-shadow:0 0 0 4px #10b98133"></span></div>
+    <div class="card" style="--tc:#10b981">
+      <div class="card-hd">
+        <span class="badge" style="background:#10b981">Learning</span>
+        <span class="date">2026-07-04</span>
+        <span class="diff" title="difficulty 2/5">●●○○○</span>
+      </div>
+      <h3>Grokking the injectable LLM port (ports &amp; adapters)</h3>
+      <p class="summary">Asked what &quot;ports-and-adapters architecture (injectable LLM port)&quot; actually means. Walked through SkillGuard's own port.py (the LLMJudge Protocol) and anthropic_judge.py (the concrete adapter) to see how the Detection Engine depends only on the interface, letting a real Claude adapter run in prod and a deterministic stub run in tests.</p>
+<details><summary>Learnings (4)</summary><ul class="learn"><li>The Detection Engine never imports the Anthropic SDK — it talks only to the LLMJudge Protocol (a structural interface). AnthropicJudge is one adapter; a test stub is another.</li><li>&quot;Injectable&quot; means the engine receives an LLMJudge from outside rather than constructing one, so tests can pass a stub with hard-coded verdicts (no network, no API key, deterministic).</li><li>Python's Protocol gives structural typing: anything with a matching judge() method IS an LLMJudge, no inheritance required.</li><li>The pattern also quarantines the security-critical untrusted-data framing (ADR 0002) inside one adapter instead of smearing it across the codebase.</li></ul></details>
+<details open><summary>General knowledge (1)</summary><ul class="know-node"><li><b class="kt">Ports &amp; adapters:</b> Keep core logic depending on an interface (port), never a concrete external system; plug real vs fake implementations in from outside (inject). The payoff is testability — swap a non-deterministic, costly dependency (an LLM, a DB, the network) for a controlled stub without touching the core.</li></ul></details>
+<div class="node-skills"><span class="chip sm">Grep</span><span class="chip sm">Read</span></div>
+<p class="impact">🎯 Turned a named-but-fuzzy architecture term into a concrete mental model anchored in the project's own files, so future changes to the LLM layer are reasoned about at the right seam.</p>
+    </div>
+  </div><div class="node">
+    <div class="rail"><span class="dot" style="background:#10b981;box-shadow:0 0 0 4px #10b98133"></span></div>
+    <div class="card" style="--tc:#10b981">
+      <div class="card-hd">
+        <span class="badge" style="background:#10b981">Learning</span>
+        <span class="date">2026-07-06</span>
+        <span class="diff" title="difficulty 2/5">●●○○○</span>
+      </div>
+      <h3>Why two hooks: SessionStart barrier vs PreToolUse backstop</h3>
+      <p class="summary">Worked through how Claude Code hooks fire and why SkillGuard needs two of them: SessionStart runs once at boot (before skill descriptions load) and can quarantine files, while PreToolUse fires before every Skill/Bash call to catch Skills that arrive mid-session.</p>
+<details><summary>Learnings (4)</summary><ul class="learn"><li>SessionStart is a one-shot snapshot at launch (typing `claude`) and boot blocks until it returns — that blocking is what realises the 'hold on unknown' rule.</li><li>SessionStart is the ONLY hook that can protect a Skill's description surface, because descriptions load into context at boot before any tool call, so PreToolUse never gets a chance at them.</li><li>PreToolUse exists purely to cover SessionStart's blind spot: Skills that land after boot (agent-generated, downloaded, or git-cloned mid-session) since SessionStart already fired and won't re-run.</li><li>The 'SessionStart-before-load' ordering is a load-bearing assumption — if Claude Code ever loaded descriptions before running SessionStart, the barrier would regress to next-session-only.</li></ul></details>
+<details open><summary>General knowledge (2)</summary><ul class="know-node"><li><b class="kt">Claude Code hooks:</b> Hooks are shell commands the harness runs at lifecycle points, not model choices — that's why they're reliable for enforcement. They take a JSON event on stdin and return JSON on stdout; PreToolUse is a veto point that can deny a tool call before it runs.</li><li><b class="kt">Claude Code hooks:</b> A hook subprocess is fed stdin on a pipe, so isatty() is false — a clean signal for 'no human present' to degrade interactive prompts to a safe non-blocking default instead of hanging.</li></ul></details>
+<div class="node-skills"><span class="chip sm">Read</span><span class="chip sm">Grep</span><span class="chip sm">Glob</span></div>
+<p class="impact">🎯 Clarified the defense-in-depth rationale behind SkillGuard's two enforce points, making the boot-time vs use-time distinction concrete.</p>
     </div>
   </div><div class="node">
     <div class="rail"><span class="dot" style="background:#a855f7;box-shadow:0 0 0 4px #a855f733"></span></div>
     <div class="card" style="--tc:#a855f7">
       <div class="card-hd">
         <span class="badge" style="background:#a855f7">Design</span>
-        <span class="date">2026-07-04</span>
-        <span class="diff" title="difficulty 4/5">●●●●○</span>
+        <span class="date">2026-07-21</span>
+        <span class="diff" title="difficulty 3/5">●●●○○</span>
       </div>
-      <h3>SkillGuard architecture grill + engine-only PRD</h3>
-      <p class="summary">Grilled a one-paragraph 'AI security for skills' idea into a decision-complete architecture (glossary, 2 ADRs, PRD, GitHub issue), walking a design tree one dependency at a time and isolating the single unproven risk into a shippable first slice.</p>
-<details open><summary>Trade-offs (5)</summary><ul class="to"><li><span class="pick">✔ Install-time CLI gate as surface #1</span> <span class="drop">✘ Chrome Extension or GitHub Actions interception</span>
-        <div class="why">The extension only catches browser-discovered skills and CI only catches repo-committed ones; the CLI gate sits at the one choke point every install path (clone/curl/zip) converges on, and stays agent-agnostic so browser/CI become later clients not rewrites.</div></li><li><span class="pick">✔ Hash-first, upload-on-miss with a shared verdict cache</span> <span class="drop">✘ Always upload full content, or scan fully locally</span>
-        <div class="why">Always-upload leaks content even for already-known skills; fully-local kills the shared cache and forces a weak on-device model. Hash-first keeps known skills private AND builds a network-effect cache where one scan protects every later developer.</div></li><li><span class="pick">✔ Canonical bundle hash (LF-normalized, junk-excluded) as skill identity</span> <span class="drop">✘ Raw byte hash, or source+version (repo+commit)</span>
-        <div class="why">User stress-tested with 'two devs download the same skill — same hash?': raw bytes diverge on Windows CRLF vs Linux LF (near-zero cache hits), source+version misses forks/mirrors. Only content-addressed + canonicalized identity makes 'same skill -&gt; same hash' hold cross-platform, which the whole moat depends on.</div></li><li><span class="pick">✔ Hybrid static + LLM detection with defense-in-depth</span> <span class="drop">✘ LLM-only, or static-rules-only</span>
-        <div class="why">Static alone misses semantic injection ('review env config files' with no banned keyword); LLM alone is costly and can be prompt-injected by the skill it reads. Hybrid pairs a deterministic static floor the LLM can't downgrade with semantic judgment that only ever escalates.</div></li><li><span class="pick">✔ Ship engine-only `skillguard scan` first</span> <span class="drop">✘ Build full v1 (gate + cache + DB + provenance) up front</span>
-        <div class="why">Detection quality is the sole unproven risk; everything else is known plumbing. Validating the engine against an eval corpus before wrapping infra around it avoids betting plumbing on an engine that might not work.</div></li></ul></details>
-<details><summary>Learnings (4)</summary><ul class="learn"><li>An install-time CLI gate is the universal choke point for AI-skill installs, because every discovery path still has to land the skill on disk before the agent trusts it.</li><li>A shared verdict cache only works if identity is content-addressed AND canonicalized (LF line endings, exclude .git/OS junk) so the same skill yields the same hash across Windows/Mac/Linux.</li><li>Static detection is grep-on-steroids for known-bad primitives (curl|bash, ~/.ssh, base64 -d | sh) but is blind to innocent-sounding semantic injection, which is what the LLM layer is for.</li><li>A security analyzer's input is adversarial toward the analyzer itself: a skill can try to talk the LLM into a CLEAN verdict, so manipulation attempts must escalate the verdict, backed by a static floor the LLM can never downgrade.</li></ul></details>
-<div class="node-skills"><span class="chip sm">grill-with-docs</span><span class="chip sm">grilling</span><span class="chip sm">domain-modeling</span><span class="chip sm">to-prd</span><span class="chip sm">git</span><span class="chip sm">gh-cli</span></div>
-<p class="impact">🎯 Converted a vague product idea into a documented, testable architecture that de-risks the one uncertain component first, demonstrating design judgment under adversarial security constraints.</p>
+      <h3>Grilling the Control Plane: herd immunity + the fat-gate pivot</h3>
+      <p class="summary">A grill-with-docs session that designed the next step — a Control Plane vertical slice where one machine scans and the whole fleet adopts the Verdict. Surfaced that the shipped code (local engine per gate) contradicts ADR 0001 (thin client, upload-on-miss), reconciled the record, and produced PRD 0003 + ADR 0004.</p>
+<details open><summary>Trade-offs (3)</summary><ul class="to"><li><span class="pick">✔ Adopt all Verdict tiers from the Control Plane, Clean included (hash-bound + engine_version-gated)</span> <span class="drop">✘ Asymmetric trust: adopt Malicious/Suspicious but always re-scan on Clean</span>
+        <div class="why">User pushed back — Clean is the common case, so re-scanning every Clean Skill on every machine throws away nearly all the compute savings. Safety comes from content-hash binding + engine-version gating, not from refusing Clean.</div></li><li><span class="pick">✔ Model 2 — fat gate with a local engine, sharing only Verdict metadata (content never leaves the machine)</span> <span class="drop">✘ Model 1 — thin client that uploads Skill content on a miss for central scanning (ADR 0001 as written)</span>
+        <div class="why">The code already ships a local engine, so Model 2 matches reality, keeps the Control Plane lightweight (no server-side LLM), and gives a strong privacy line. Cost: the CP can't independently verify a pushed verdict (rogue-writer gap), deferred to future write-auth.</div></li><li><span class="pick">✔ React + Postgres for the Control Plane (industry-standard, resume-worthy)</span> <span class="drop">✘ Server-rendered HTML + SQLite</span>
+        <div class="why">User wanted something show-off-worthy for a hiring manager. Scoped to avoid friction: React built and served as static from FastAPI (one process), Postgres only in the cloud CP while the endpoint store stays embedded.</div></li></ul></details>
+<details><summary>Learnings (5)</summary><ul class="learn"><li>The local Verdict Store is the CACHE; the Control Plane Postgres is the SOURCE OF TRUTH — opposite roles. The endpoint caches from the cloud origin, so Postgres is never the 'cache'.</li><li>Herd immunity = scan each unique Skill once per fleet, not once per machine. Adopting Clean verdicts is where the savings live, since most Skills are Clean.</li><li>What makes trusting a remote Verdict safe is content-hash binding (adopt only for exact bytes) + engine_version gating (adopt only if the remote engine &gt;= mine) — not wall-clock freshness; a fresh wrong verdict is still wrong.</li><li>Verdict (deduped per content, no machine) and Sighting (per-machine encounter, with a Source of scanned/adopted/cache) are two different concepts — the dashboard needs the per-machine dimension a Verdict doesn't carry.</li><li>The CP query slots into evaluate() as a nullable ControlPlanePort mirroring the existing EnginePort/AllowlistPort; cp=None means standalone-local, which IS the fail-safe and keeps the existing test suite green.</li></ul></details>
+<details open><summary>General knowledge (3)</summary><ul class="know-node"><li><b class="kt">Design docs / ADRs:</b> Cross-check ADRs against the code as you design — a shipped decision can silently diverge from its ADR (here the engine went local while ADR 0001 still assumed a thin client). When you find the contradiction, reconcile the record (amend/supersede) rather than paper over it, or the next reader trusts a stale doc.</li><li><b class="kt">Architecture:</b> Endpoint-agent + central-server shape: keep a light agent on every endpoint and one heavy DB in the cloud (EDR/Sentry/Datadog pattern). Two stores with opposite roles — embedded cache on the endpoint, authoritative DB centrally. For a demo you collapse the whole topology (server + DB + several agents) onto one laptop, but say so when presenting.</li><li><b class="kt">Ports &amp; adapters:</b> Injecting an optional dependency as a NULLABLE port whose None-case is the safe fallback gives you the degrade-gracefully behavior for free and keeps every existing test passing untouched — the absence of the adapter is a first-class, safe mode.</li></ul></details>
+<div class="node-skills"><span class="chip sm">grilling</span><span class="chip sm">domain-modeling</span><span class="chip sm">Read</span><span class="chip sm">Grep</span><span class="chip sm">Write</span><span class="chip sm">Edit</span></div>
+<p class="impact">🎯 Turned a vague 'what's next' into a fully-grilled, buildable Control Plane slice with the architecture pivot (fat gate, metadata-only) reconciled across ADR 0001/0004, PRD 0003, and the glossary.</p>
     </div>
   </div></main>
 <footer class="ft">SkillGuard · engineering-reflection — this file is regenerated from journey.json on every reflection.</footer>

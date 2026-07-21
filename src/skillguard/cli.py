@@ -11,10 +11,18 @@ from typing import Annotated
 
 import typer
 
+from skillguard import daemon as daemon_mod
+from skillguard.allowlist import Allowlist
 from skillguard.engine import DetectionEngine
 from skillguard.engine.llm.anthropic_judge import AnthropicJudge, LLMJudgeError
+from skillguard.hash import canonical_bundle_hash, short_hash
+from skillguard.hooks import pre_tool_use, session_start
+from skillguard.install import install_hooks
 from skillguard.loader import SkillLoadError, load_skill
-from skillguard.rendering import exit_code_for, render_verdict
+from skillguard.paths import claude_home, quarantine_root, store_root
+from skillguard.quarantine import Quarantine, QuarantineError
+from skillguard.rendering import exit_code_for, render_status, render_verdict
+from skillguard.store import VerdictStore
 
 app = typer.Typer(
     name="skillguard",
@@ -54,3 +62,118 @@ def scan(
 
     render_verdict(verdict)
     raise typer.Exit(code=exit_code_for(verdict))
+
+
+def claude_settings_path() -> Path:
+    """The Claude Code settings file the Endpoint Gate hooks are written into."""
+    return claude_home() / "settings.json"
+
+
+@app.command("install-hook")
+def install_hook() -> None:
+    """Wire the Endpoint Gate into Claude Code (writes the SessionStart hook into settings)."""
+    settings_path = claude_settings_path()
+    install_hooks(settings_path)
+    typer.secho(f"Installed SkillGuard hooks into {settings_path}", fg=typer.colors.GREEN)
+
+
+@app.command()
+def restore(
+    name: Annotated[
+        str,
+        typer.Argument(help="Name of the quarantined Skill to move back (see 'status')."),
+    ],
+) -> None:
+    """Move a quarantined Skill back to its original location (the false-positive escape hatch)."""
+    quarantine = Quarantine(quarantine_root())
+    try:
+        original = quarantine.restore(name)
+    except QuarantineError as exc:
+        typer.secho(f"error: {exc}", fg=typer.colors.RED, err=True)
+        raise typer.Exit(code=_USAGE_ERROR) from exc
+    typer.secho(f"Restored {name} to {original}", fg=typer.colors.GREEN)
+
+
+@app.command()
+def allow(
+    folder: Annotated[
+        Path,
+        typer.Argument(help="Path to the Skill folder to approve."),
+    ],
+) -> None:
+    """Approve a Skill by its Canonical Bundle Hash so the gate passes this exact content."""
+    try:
+        skill = load_skill(folder)
+    except SkillLoadError as exc:
+        typer.secho(f"error: {exc}", fg=typer.colors.RED, err=True)
+        raise typer.Exit(code=_USAGE_ERROR) from exc
+
+    bundle_hash = canonical_bundle_hash(skill)
+    Allowlist(store_root()).allow(bundle_hash)
+    typer.secho(f"Allowed {folder} ({short_hash(bundle_hash)})", fg=typer.colors.GREEN)
+
+
+@app.command()
+def status() -> None:
+    """Show the gate's state: cached Verdicts, quarantined Skills with Findings, the Allowlist."""
+    store = VerdictStore(store_root())
+    quarantine = Quarantine(quarantine_root())
+    allowlist = Allowlist(store_root())
+    # Join each quarantined entry back to its Verdict Store record by Canonical Bundle Hash so
+    # its Findings are recovered (the manifest holds no Findings): a Tier without its evidence
+    # is not acceptable. A missing record surfaces as None, still shown gracefully.
+    quarantined = [(entry, store.get(entry.bundle_hash)) for entry in quarantine.list()]
+    render_status(
+        cached=store.items(),
+        quarantined=quarantined,
+        allowlisted=allowlist.list(),
+    )
+
+
+@app.command()
+def daemon(
+    once: Annotated[
+        bool,
+        typer.Option(
+            "--once", help="Run a single ahead-of-time scan pass and exit (cron/testing)."
+        ),
+    ] = False,
+) -> None:
+    """Run the resident watcher that scans Skills ahead of time so SessionStart stays fast.
+
+    Without ``--once`` this runs in the foreground and polls the skills directories until you
+    stop it (Ctrl+C, or close the terminal / Stop-Process on Windows). ``--once`` performs a
+    single pass — quarantining any Malicious Skill and caching every Verdict — then exits.
+    """
+    if once:
+        enforcement = daemon_mod.main(once=True)
+        moved = len(enforcement.quarantined) if enforcement is not None else 0
+        typer.secho(
+            f"Scan pass complete: quarantined {moved} Malicious Skill(s).",
+            fg=typer.colors.GREEN,
+        )
+        return
+
+    typer.secho(
+        "SkillGuard daemon watching your Skills. Press Ctrl+C to stop.",
+        fg=typer.colors.GREEN,
+    )
+    try:
+        daemon_mod.main(once=False)
+    except KeyboardInterrupt:  # pragma: no cover - interactive stop
+        typer.secho("Daemon stopped.", fg=typer.colors.YELLOW)
+
+
+@app.command("hook", hidden=True)
+def hook(
+    event: Annotated[str, typer.Argument(help="Hook event, e.g. 'session-start'.")],
+) -> None:
+    """Internal dispatcher Claude Code invokes for a hook event. Not for direct use."""
+    if event == "session-start":
+        session_start.main()
+        return
+    if event == "pre-tool-use":
+        pre_tool_use.main()
+        return
+    typer.secho(f"error: unknown hook event: {event}", fg=typer.colors.RED, err=True)
+    raise typer.Exit(code=_USAGE_ERROR)

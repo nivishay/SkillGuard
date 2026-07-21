@@ -1,0 +1,114 @@
+<title>SkillGuard Journey · Roadmap</title>
+<style>
+:root,:root[data-theme="light"]{--bg:#f7f8fa;--fg:#1f2430;--mut:#6b7280;--card:#ffffff;--line:#d6dae1;--rail:#c3c9d4}
+@media(prefers-color-scheme:dark){:root{--bg:#0f1117;--fg:#e6e8ee;--mut:#9aa3b2;--card:#171a22;--line:#2a2f3a;--rail:#333a47}}
+:root[data-theme="dark"]{--bg:#0f1117;--fg:#e6e8ee;--mut:#9aa3b2;--card:#171a22;--line:#2a2f3a;--rail:#333a47}
+*{box-sizing:border-box}
+body{margin:0;font:15px/1.55 -apple-system,Segoe UI,Roboto,sans-serif;background:var(--bg);color:var(--fg);padding:28px 18px 60px}
+h1,h2,h3{margin:0}
+.muted{color:var(--mut);font-weight:400;font-size:.85em}
+.hd{max-width:900px;margin:0 auto 22px}
+.hd h1{font-size:26px}
+.sub{color:var(--mut);margin:4px 0 16px}
+.stats{display:flex;gap:10px;flex-wrap:wrap}
+.stat{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:10px 16px;min-width:96px}
+.stat-v{font-size:22px;font-weight:700}
+.stat-l{color:var(--mut);font-size:12px;text-transform:uppercase;letter-spacing:.04em}
+.panel{max-width:900px;margin:0 auto 18px;display:grid;grid-template-columns:1fr 1fr;gap:14px}
+@media(max-width:640px){.panel{grid-template-columns:1fr}}
+.col{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px 16px}
+.col h2{font-size:14px;margin-bottom:10px}
+.spark{width:100%;height:90px;display:block}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chip{background:var(--bg);border:1px solid var(--line);border-radius:20px;padding:3px 10px;font-size:13px;display:inline-flex;gap:6px;align-items:center}
+.chip b{color:var(--mut);font-size:11px}
+.chip.sm{font-size:11px;padding:2px 8px}
+.know{max-width:900px;margin:0 auto 18px;background:var(--card);border:1px solid var(--line);border-left:4px solid #06b6d4;border-radius:14px;padding:14px 16px}
+.know>h2{font-size:14px;margin-bottom:12px}
+.know-groups{display:grid;grid-template-columns:1fr 1fr;gap:12px 20px}
+@media(max-width:640px){.know-groups{grid-template-columns:1fr}}
+.know-group{min-width:0}
+.know-topic{font-size:12px;font-weight:700;color:#06b6d4;text-transform:uppercase;letter-spacing:.04em;margin-bottom:2px}
+.know-list{margin:2px 0 0;padding-left:16px}
+.know-list li{margin:5px 0;font-size:13.5px}
+.know-date{color:var(--mut);font-size:11px;margin-left:6px;white-space:nowrap}
+.know-node .kt{color:#06b6d4}
+.legend{max-width:900px;margin:0 auto 10px;display:flex;gap:14px;flex-wrap:wrap;font-size:12px;color:var(--mut)}
+.lg{display:inline-flex;align-items:center;gap:5px}
+.lg i{width:10px;height:10px;border-radius:50%;display:inline-block}
+.tree{max-width:900px;margin:0 auto;position:relative}
+.node{display:grid;grid-template-columns:34px 1fr;gap:6px}
+.rail{position:relative;display:flex;justify-content:center}
+.rail:before{content:"";position:absolute;top:0;bottom:-0;width:2px;background:var(--rail)}
+.node:last-child .rail:before{bottom:auto;height:26px}
+.dot{width:14px;height:14px;border-radius:50%;margin-top:20px;z-index:1}
+.card{background:var(--card);border:1px solid var(--line);border-left:4px solid var(--tc);border-radius:12px;padding:12px 16px;margin:8px 0 18px}
+.card-hd{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:4px}
+.badge{color:#fff;font-size:11px;font-weight:600;padding:2px 8px;border-radius:6px}
+.date{color:var(--mut);font-size:12px}
+.diff{color:#10b981;letter-spacing:1px;font-size:11px;margin-left:auto}
+.card h3{font-size:16px;margin:2px 0 8px}
+.summary{margin:6px 0}
+details{margin:8px 0;border-top:1px solid var(--line);padding-top:8px}
+summary{cursor:pointer;font-weight:600;font-size:13px}
+ul{margin:8px 0 4px;padding-left:18px}
+li{margin:4px 0}
+.to .pick{color:#10b981;font-weight:600}
+.to .drop{color:var(--mut);text-decoration:line-through}
+.why{color:var(--mut);font-size:13px;margin:2px 0 6px}
+.fix{color:#10b981;font-size:13px}
+.who{font-size:10px;font-weight:700;padding:1px 6px;border-radius:5px;text-transform:uppercase;letter-spacing:.03em;vertical-align:middle}
+.who.you{background:#10b98122;color:#10b981}
+.who.both{background:#3b82f622;color:#3b82f6}
+.who.auto{background:#64748b22;color:var(--mut)}
+.muted-bug{opacity:.55}
+.muted-bug b{font-weight:500}
+.node-skills{margin:8px 0;display:flex;flex-wrap:wrap;gap:5px}
+.impact{margin:10px 0 2px;font-weight:600}
+.ft{max-width:900px;margin:30px auto 0;color:var(--mut);font-size:12px;text-align:center}
+</style>
+<header class="hd">
+  <h1>SkillGuard Journey</h1>
+  <p class="sub">Engineering journey · 1 milestone · generated 2026-07-04 20:14</p>
+  <div class="stats"><div class="stat"><div class="stat-v">1</div><div class="stat-l">milestones</div></div><div class="stat"><div class="stat-v">0</div><div class="stat-l">bugs fixed</div></div><div class="stat"><div class="stat-v">0</div><div class="stat-l">trade-offs</div></div><div class="stat"><div class="stat-v">1</div><div class="stat-l">learnings</div></div><div class="stat"><div class="stat-v">3</div><div class="stat-l">craft notes</div></div><div class="stat"><div class="stat-v">1</div><div class="stat-l">skills used</div></div></div>
+</header>
+
+<section class="panel">
+  <div class="col">
+    <h2>Learning curve <span class="muted">(difficulty 1–5 over time)</span></h2>
+    <svg viewBox="0 0 320 90" class="spark" preserveAspectRatio="none">
+    <polygon points="12,78 160.0,61.5 308,78" fill="#10b98122"/>
+    <polyline points="160.0,61.5" fill="none" stroke="#10b981" stroke-width="2"/>
+    <circle cx="160.0" cy="61.5" r="3.5" fill="#10b981"/>
+  </svg>
+  </div>
+  <div class="col">
+    <h2>Skills exercised</h2>
+    <div class="chips"><span class="chip">engineering-reflection<b>1</b></span></div>
+  </div>
+</section>
+
+<section class="know">
+      <h2>General knowledge <span class="muted">— craft &amp; workflow, cross-cutting</span></h2>
+      <div class="know-groups"><div class="know-group"><div class="know-topic">Context window</div><ul class="know-list"><li>Compact constantly and keep an eye on window size; close a session once its context is no longer relevant instead of letting it bloat — stale context is a cost, not a safety net.<span class="know-date">2026-07-04</span></li></ul></div><div class="know-group"><div class="know-topic">Agents &amp; sessions</div><ul class="know-list"><li>Split different problems across separate agents/sessions. Each session's window is scoped to one problem, so the right context gets sent every time instead of one giant window carrying everything.<span class="know-date">2026-07-04</span></li></ul></div><div class="know-group"><div class="know-topic">CLI vs MCP</div><ul class="know-list"><li>CLI is best for straightforward commands but is prone to fat-fingering a long/complex invocation; MCP gives exact, structured usage for complex tasks (e.g. exposing data). Reach for CLI for simple ops, MCP when precision on a complex call matters.<span class="know-date">2026-07-04</span></li></ul></div></div>
+    </section>
+
+<div class="legend"><span class="lg"><i style="background:#3b82f6"></i>Feature</span><span class="lg"><i style="background:#ef4444"></i>Bug fix</span><span class="lg"><i style="background:#a855f7"></i>Design</span><span class="lg"><i style="background:#f59e0b"></i>Refactor</span><span class="lg"><i style="background:#10b981"></i>Learning</span><span class="lg"><i style="background:#06b6d4"></i>Craft knowledge</span><span class="lg"><i style="background:#64748b"></i>Note</span></div>
+
+<main class="tree"><div class="node">
+    <div class="rail"><span class="dot" style="background:#06b6d4;box-shadow:0 0 0 4px #06b6d433"></span></div>
+    <div class="card" style="--tc:#06b6d4">
+      <div class="card-hd">
+        <span class="badge" style="background:#06b6d4">Craft knowledge</span>
+        <span class="date">2026-07-04</span>
+        <span class="diff" title="difficulty 2/5">●●○○○</span>
+      </div>
+      <h3>Add &quot;general knowledge&quot; category to the reflection roadmap</h3>
+      <p class="summary">Extended the engineering-reflection skill with a cross-cutting &quot;general knowledge&quot; category — durable craft/workflow insight that isn't a bug or a trade-off — surfaced in its own topic-grouped panel plus a knowledge node type. Seeded it with the workflow lessons learned so far.</p>
+<details><summary>Learnings (1)</summary><ul class="learn"><li>The roadmap now aggregates craft notes across the whole journey into one topic-grouped panel, so general knowledge is a running cheat-sheet separate from the per-milestone tree.</li></ul></details>
+<details open><summary>General knowledge (3)</summary><ul class="know-node"><li><b class="kt">Context window:</b> Compact constantly and keep an eye on window size; close a session once its context is no longer relevant instead of letting it bloat — stale context is a cost, not a safety net.</li><li><b class="kt">Agents &amp; sessions:</b> Split different problems across separate agents/sessions. Each session's window is scoped to one problem, so the right context gets sent every time instead of one giant window carrying everything.</li><li><b class="kt">CLI vs MCP:</b> CLI is best for straightforward commands but is prone to fat-fingering a long/complex invocation; MCP gives exact, structured usage for complex tasks (e.g. exposing data). Reach for CLI for simple ops, MCP when precision on a complex call matters.</li></ul></details>
+<div class="node-skills"><span class="chip sm">engineering-reflection</span></div>
+<p class="impact">🎯 The journey now captures how-to-work knowledge, not just what-got-built, so hard-won workflow lessons are remembered across projects.</p>
+    </div>
+  </div></main>
+<footer class="ft">SkillGuard · engineering-reflection — this file is regenerated from journey.json on every reflection.</footer>
