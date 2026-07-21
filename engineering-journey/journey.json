@@ -58,6 +58,94 @@
       ],
       "impact": "Turned a named-but-fuzzy architecture term into a concrete mental model anchored in the project's own files, so future changes to the LLM layer are reasoned about at the right seam.",
       "id": "e2"
+    },
+    {
+      "date": "2026-07-06",
+      "title": "Why two hooks: SessionStart barrier vs PreToolUse backstop",
+      "type": "learning",
+      "summary": "Worked through how Claude Code hooks fire and why SkillGuard needs two of them: SessionStart runs once at boot (before skill descriptions load) and can quarantine files, while PreToolUse fires before every Skill/Bash call to catch Skills that arrive mid-session.",
+      "difficulty": 2,
+      "tradeoffs": [],
+      "bugs": [],
+      "skills": [
+        "Read",
+        "Grep",
+        "Glob"
+      ],
+      "learnings": [
+        "SessionStart is a one-shot snapshot at launch (typing `claude`) and boot blocks until it returns — that blocking is what realises the 'hold on unknown' rule.",
+        "SessionStart is the ONLY hook that can protect a Skill's description surface, because descriptions load into context at boot before any tool call, so PreToolUse never gets a chance at them.",
+        "PreToolUse exists purely to cover SessionStart's blind spot: Skills that land after boot (agent-generated, downloaded, or git-cloned mid-session) since SessionStart already fired and won't re-run.",
+        "The 'SessionStart-before-load' ordering is a load-bearing assumption — if Claude Code ever loaded descriptions before running SessionStart, the barrier would regress to next-session-only."
+      ],
+      "knowledge": [
+        {
+          "topic": "Claude Code hooks",
+          "insight": "Hooks are shell commands the harness runs at lifecycle points, not model choices — that's why they're reliable for enforcement. They take a JSON event on stdin and return JSON on stdout; PreToolUse is a veto point that can deny a tool call before it runs."
+        },
+        {
+          "topic": "Claude Code hooks",
+          "insight": "A hook subprocess is fed stdin on a pipe, so isatty() is false — a clean signal for 'no human present' to degrade interactive prompts to a safe non-blocking default instead of hanging."
+        }
+      ],
+      "impact": "Clarified the defense-in-depth rationale behind SkillGuard's two enforce points, making the boot-time vs use-time distinction concrete.",
+      "id": "e3"
+    },
+    {
+      "date": "2026-07-21",
+      "title": "Grilling the Control Plane: herd immunity + the fat-gate pivot",
+      "type": "design",
+      "summary": "A grill-with-docs session that designed the next step — a Control Plane vertical slice where one machine scans and the whole fleet adopts the Verdict. Surfaced that the shipped code (local engine per gate) contradicts ADR 0001 (thin client, upload-on-miss), reconciled the record, and produced PRD 0003 + ADR 0004.",
+      "difficulty": 3,
+      "tradeoffs": [
+        {
+          "chosen": "Adopt all Verdict tiers from the Control Plane, Clean included (hash-bound + engine_version-gated)",
+          "rejected": "Asymmetric trust: adopt Malicious/Suspicious but always re-scan on Clean",
+          "why": "User pushed back — Clean is the common case, so re-scanning every Clean Skill on every machine throws away nearly all the compute savings. Safety comes from content-hash binding + engine-version gating, not from refusing Clean."
+        },
+        {
+          "chosen": "Model 2 — fat gate with a local engine, sharing only Verdict metadata (content never leaves the machine)",
+          "rejected": "Model 1 — thin client that uploads Skill content on a miss for central scanning (ADR 0001 as written)",
+          "why": "The code already ships a local engine, so Model 2 matches reality, keeps the Control Plane lightweight (no server-side LLM), and gives a strong privacy line. Cost: the CP can't independently verify a pushed verdict (rogue-writer gap), deferred to future write-auth."
+        },
+        {
+          "chosen": "React + Postgres for the Control Plane (industry-standard, resume-worthy)",
+          "rejected": "Server-rendered HTML + SQLite",
+          "why": "User wanted something show-off-worthy for a hiring manager. Scoped to avoid friction: React built and served as static from FastAPI (one process), Postgres only in the cloud CP while the endpoint store stays embedded."
+        }
+      ],
+      "bugs": [],
+      "skills": [
+        "grilling",
+        "domain-modeling",
+        "Read",
+        "Grep",
+        "Write",
+        "Edit"
+      ],
+      "learnings": [
+        "The local Verdict Store is the CACHE; the Control Plane Postgres is the SOURCE OF TRUTH — opposite roles. The endpoint caches from the cloud origin, so Postgres is never the 'cache'.",
+        "Herd immunity = scan each unique Skill once per fleet, not once per machine. Adopting Clean verdicts is where the savings live, since most Skills are Clean.",
+        "What makes trusting a remote Verdict safe is content-hash binding (adopt only for exact bytes) + engine_version gating (adopt only if the remote engine >= mine) — not wall-clock freshness; a fresh wrong verdict is still wrong.",
+        "Verdict (deduped per content, no machine) and Sighting (per-machine encounter, with a Source of scanned/adopted/cache) are two different concepts — the dashboard needs the per-machine dimension a Verdict doesn't carry.",
+        "The CP query slots into evaluate() as a nullable ControlPlanePort mirroring the existing EnginePort/AllowlistPort; cp=None means standalone-local, which IS the fail-safe and keeps the existing test suite green."
+      ],
+      "knowledge": [
+        {
+          "topic": "Design docs / ADRs",
+          "insight": "Cross-check ADRs against the code as you design — a shipped decision can silently diverge from its ADR (here the engine went local while ADR 0001 still assumed a thin client). When you find the contradiction, reconcile the record (amend/supersede) rather than paper over it, or the next reader trusts a stale doc."
+        },
+        {
+          "topic": "Architecture",
+          "insight": "Endpoint-agent + central-server shape: keep a light agent on every endpoint and one heavy DB in the cloud (EDR/Sentry/Datadog pattern). Two stores with opposite roles — embedded cache on the endpoint, authoritative DB centrally. For a demo you collapse the whole topology (server + DB + several agents) onto one laptop, but say so when presenting."
+        },
+        {
+          "topic": "Ports & adapters",
+          "insight": "Injecting an optional dependency as a NULLABLE port whose None-case is the safe fallback gives you the degrade-gracefully behavior for free and keeps every existing test passing untouched — the absence of the adapter is a first-class, safe mode."
+        }
+      ],
+      "impact": "Turned a vague 'what's next' into a fully-grilled, buildable Control Plane slice with the architecture pivot (fat gate, metadata-only) reconciled across ADR 0001/0004, PRD 0003, and the glossary.",
+      "id": "e4"
     }
   ]
 }

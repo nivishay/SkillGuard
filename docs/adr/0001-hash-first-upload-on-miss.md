@@ -1,8 +1,19 @@
 # Hash-first, upload-on-miss with a shared verdict cache
 
-**Status:** accepted
+**Status:** accepted — but the *upload-on-miss* flow is **superseded by ADR 0004** (see amendment below)
 
-To scan an AI agent skill for malicious behavior, the client first computes a **Canonical Bundle Hash** of the skill and asks the API whether a Verdict already exists for that hash. On a cache **hit**, the Verdict is returned instantly and the skill's content never leaves the developer's machine. Only on a cache **miss** does the client upload the skill's content for full analysis, after which the Verdict is stored keyed by hash for everyone.
+> **Amendment (ADR 0004).** This ADR assumed a *thin client + server-side engine*: on a miss the
+> client uploads content and the server scans. The project instead ships a **fat gate with a
+> local Detection Engine** — each gate scans on its own machine and pushes only Verdict
+> *metadata* (`hash, tier, findings, engine_version, scanned_at`) to the Control Plane; the
+> Skill's **content never leaves the machine**, on hit *or* miss. The hash-first lookup, the
+> shared verdict cache, the network effect, and version-stamping below all still stand — only
+> "upload content on miss → server scans" is replaced by "scan locally → push metadata." Central
+> content upload survives only as an *optional* future thin-client / self-hosted central-scan
+> tier. The trade-off this creates (the Control Plane can no longer independently verify a pushed
+> verdict) is recorded in ADR 0004.
+
+To scan an AI agent skill for malicious behavior, the client first computes a **Canonical Bundle Hash** of the skill and asks the API whether a Verdict already exists for that hash. On a cache **hit**, the Verdict is returned instantly and the skill's content never leaves the developer's machine. Only on a cache **miss** does the client upload the skill's content for full analysis, after which the Verdict is stored keyed by hash for everyone. *(Superseded — see amendment above: the gate now scans locally on a miss and uploads no content.)*
 
 We chose this over "always upload" (simpler, but every skill's content leaves the machine even when already known) and "fully local" (max privacy, but no shared cache and much weaker detection since the heavy LLM/static analysis lives server-side).
 

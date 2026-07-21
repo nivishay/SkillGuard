@@ -7,7 +7,6 @@ the skills directories, quarantines any Malicious Skill's folder off disk, and r
 tells the developer exactly what was moved and why — the Findings — so the action is never a
 silent black box.
 """
-
 from __future__ import annotations
 
 import contextlib

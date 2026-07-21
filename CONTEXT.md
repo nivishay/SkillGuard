@@ -51,6 +51,14 @@ _Avoid_: Mode, setting, rule
 A single piece of evidence inside a Verdict: which **Threat Vector** was detected, a short human-readable explanation, and a location (which file and where in it). Findings are *why* a Verdict is what it is. The Endpoint Gate must surface a Skill's Findings to the developer at the warn/confirm and quarantine moments — a tier without its evidence is not acceptable.
 _Avoid_: Alert, hit, match
 
+**Sighting**:
+A single machine's encounter with a Skill at a moment in time: which machine, which Skill (by **Canonical Bundle Hash** and name), the **Verdict** tier applied, the enforcement **Action** taken, when, and the **Source** of the Verdict. Distinct from a Verdict, which is deduped per Skill *content* across the whole fleet and carries no machine — a Verdict is *what is known about a Skill*; a Sighting is *what happened on one machine*. Sightings are the **Control Plane**'s fleet activity feed: the per-machine, per-encounter rows that let the dashboard show "quarantined on 3 of 5 machines." A Verdict is upserted once per hash; a Sighting is appended once per encounter.
+_Avoid_: Event, log entry, scan (a scan is one Source of a Sighting, not the Sighting itself)
+
+**Source**:
+How a machine came to know a Skill's Verdict at a given **Sighting** — one of: **scanned** (this machine ran its own Detection Engine, a local cache miss with no Control Plane hit), **adopted** (the machine took the Verdict from the **Control Plane** without scanning — herd immunity in action), or **cache** (a hit in the machine's own local Verdict Store from an earlier encounter). Source is what makes herd immunity *visible*: an **adopted** Sighting is a machine enforcing a Verdict it never computed itself.
+_Avoid_: Origin, method (reserve Provenance for where a *Skill* came from; Source is how a *Verdict* reached a machine)
+
 **Allowlist**:
 The set of persisted developer/organization approvals that let an otherwise-gated Skill through. Each approval is keyed by the Skill's **Canonical Bundle Hash**, so it applies to that exact content only — if the Skill's content changes, the approval evaporates and the Skill is re-evaluated (an approved name cannot be used to smuggle in swapped-out malicious content). Locally it is the memory of "the developer already confirmed this Suspicious Skill"; at organization scale it is held centrally as part of **Policy** in the Control Plane. Its opposite, an explicit block regardless of Verdict, is a denylist.
 _Avoid_: Whitelist, exceptions, ignore list
