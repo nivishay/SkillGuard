@@ -4,11 +4,10 @@ from __future__ import annotations
 
 import typer
 
+from skillguard.hash import short_hash
 from skillguard.models import Finding, Tier, Verdict
 from skillguard.quarantine import QuarantineEntry
 from skillguard.store import VerdictRecord
-
-_HASH_PREFIX = 12  # how much of a Canonical Bundle Hash to show (matches ``skillguard allow``)
 
 _TIER_COLOR = {
     Tier.CLEAN: typer.colors.GREEN,
@@ -42,10 +41,6 @@ def _render_finding(finding: Finding, color: str) -> None:
     typer.echo(f"    {finding.explanation}")
 
 
-def _short(bundle_hash: str) -> str:
-    return bundle_hash[:_HASH_PREFIX]
-
-
 def render_status(
     *,
     cached: list[tuple[str, VerdictRecord]],
@@ -64,14 +59,14 @@ def render_status(
         typer.echo("  (none)")
     for bundle_hash, record in cached:
         color = _TIER_COLOR[record.tier]
-        typer.secho(f"  {str(record.tier):<10} {_short(bundle_hash)}", fg=color)
+        typer.secho(f"  {str(record.tier):<10} {short_hash(bundle_hash)}", fg=color)
 
     typer.echo("")
     typer.secho("Quarantined Skills", bold=True)
     if not quarantined:
         typer.echo("  (none)")
     for entry, joined in quarantined:
-        typer.secho(f"  {entry.name} ({_short(entry.bundle_hash)})", fg=typer.colors.RED, bold=True)
+        typer.secho(f"  {entry.name} ({short_hash(entry.bundle_hash)})", fg=typer.colors.RED, bold=True)
         if joined is None:
             typer.echo("    (no cached Verdict — re-scan to recover Findings)")
             continue
@@ -83,4 +78,4 @@ def render_status(
     if not allowlisted:
         typer.echo("  (none)")
     for bundle_hash in allowlisted:
-        typer.echo(f"  {_short(bundle_hash)}")
+        typer.echo(f"  {short_hash(bundle_hash)}")

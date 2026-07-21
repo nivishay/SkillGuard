@@ -15,7 +15,7 @@ from skillguard import daemon as daemon_mod
 from skillguard.allowlist import Allowlist
 from skillguard.engine import DetectionEngine
 from skillguard.engine.llm.anthropic_judge import AnthropicJudge, LLMJudgeError
-from skillguard.hash import canonical_bundle_hash
+from skillguard.hash import canonical_bundle_hash, short_hash
 from skillguard.hooks import pre_tool_use, session_start
 from skillguard.install import install_hooks
 from skillguard.loader import SkillLoadError, load_skill
@@ -110,7 +110,7 @@ def allow(
 
     bundle_hash = canonical_bundle_hash(skill)
     Allowlist(store_root()).allow(bundle_hash)
-    typer.secho(f"Allowed {folder} ({bundle_hash[:12]})", fg=typer.colors.GREEN)
+    typer.secho(f"Allowed {folder} ({short_hash(bundle_hash)})", fg=typer.colors.GREEN)
 
 
 @app.command()
